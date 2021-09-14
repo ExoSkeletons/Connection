@@ -7,13 +7,23 @@ import com.badlogic.gdx.utils.Array;
 import java.io.Closeable;
 import java.util.UUID;
 
-public interface BluetoothManager<BTP extends BluetoothManager.BluetoothPairedDeviceInterface, BTC extends Closeable> {
+public interface BluetoothManager<BTPairedDevice extends BluetoothManager.BluetoothPairedDeviceInterface, BTConnectedDevice extends Closeable> {
 	enum BluetoothState {
 		ON,
 		OFF,
 		TURNING_ON,
 		TURNING_OFF,
 		;
+	}
+
+	final class Packet<S, M> {
+		public final S sender;
+		public final M message;
+
+		public Packet(S sender, M message) {
+			this.sender = sender;
+			this.message = message;
+		}
 	}
 
 	interface BluetoothPairedDeviceInterface {
@@ -56,15 +66,15 @@ public interface BluetoothManager<BTP extends BluetoothManager.BluetoothPairedDe
 
 	Closeable host(String name, UUID uuid);
 
-	void writeTo(BTC device, byte[] bytes);
+	void writeTo(BTConnectedDevice device, byte[] bytes);
 
 	void requestMakeDiscoverable(int duration);
 
 	void enableDiscovery(boolean enabled);
 
-	Array<BTP> getPairedDevices();
+	Array<BTPairedDevice> getPairedDevices();
 
-	Array<BTC> getConnectedDevices();
+	Array<BTConnectedDevice> getConnectedDevices();
 
 	@Nullable
 	BluetoothListener getBluetoothListener();

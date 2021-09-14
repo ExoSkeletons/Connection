@@ -2,8 +2,8 @@ package com.aviadl40.connection.game.managers;
 
 import android.support.annotation.Nullable;
 
-import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.Connection;
+import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.Utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.List;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
@@ -192,7 +193,7 @@ public final class ScreenManager {
 		);
 	}
 
-	public static <S extends UIScreen> void fadeOutIn(final S endScreen, final float duration, final Runnable runAtEnd) {
+	public static <S extends UIScreen> void fadeOutIn(final S endScreen, final float duration, @Nullable final Runnable runAtEnd) {
 		final S startScreen = current();
 		next = endScreen;
 		Gdx.input.setInputProcessor(null);
@@ -205,10 +206,9 @@ public final class ScreenManager {
 								setScreen(endScreen);
 								if (startScreen.prev != endScreen)
 									endScreen.ui.getRoot().getColor().a = 0;
-								endScreen.ui.getRoot().addAction(Actions.sequence(
-										Actions.fadeIn(duration * MathUtils.clamp(1 - endScreen.ui.getRoot().getColor().a, 0, 1)),
-										Actions.run(runAtEnd)
-								));
+								final SequenceAction fadeIn = Actions.sequence(Actions.fadeIn(duration * MathUtils.clamp(1 - endScreen.ui.getRoot().getColor().a, 0, 1)));
+								if (runAtEnd != null) fadeIn.addAction(Actions.run(runAtEnd));
+								endScreen.ui.getRoot().addAction(fadeIn);
 							}
 						})
 				)
@@ -216,7 +216,7 @@ public final class ScreenManager {
 	}
 
 	public static <S extends UIScreen> void fadeOutIn(final S endScreen, final float duration) {
-		fadeOutIn(endScreen, duration, Utils.DO_NOTHING);
+		fadeOutIn(endScreen, duration, null);
 	}
 
 	public static <S extends UIScreen> void fadeOutIn(final S endScreen) {

@@ -72,11 +72,11 @@ public final class Utils {
 		@Override
 		public boolean tap(float x, float y, int count, int button) {
 			byte s = sequenceTracker;
-			if (x < Gdx.graphics.getWidth() / 2 || button == 0) { // A
+			if (x < Gdx.graphics.getWidth() / 2f || button == 0) { // A
 				if (sequenceTracker == 6)
 					stepForward();
 			}
-			if (x > Gdx.graphics.getWidth() / 2 || button == 1) { // B
+			if (x > Gdx.graphics.getWidth() / 2f || button == 1) { // B
 				if (sequenceTracker == 7)
 					stepForward();
 			}
@@ -454,23 +454,6 @@ public final class Utils {
 		}
 	}
 
-	public static final class Packet<S, M> {
-		final S senderInterface;
-		final M message;
-
-		Packet(S senderInterface, M message) {
-			this.senderInterface = senderInterface;
-			this.message = message;
-		}
-	}
-
-	public static final Runnable DO_NOTHING = new Runnable() {
-		@Override
-		public void run() {
-
-		}
-	};
-
 	public static boolean hasFrame(Animation<TextureRegionDrawable> animation, float time) {
 		return animation != null && !(animation.getPlayMode() == Animation.PlayMode.NORMAL && time < 0);
 	}
@@ -571,7 +554,7 @@ public final class Utils {
 	}
 
 	public static String toSingleLine(String s) {
-		return s.replace('\t', ' ').replace('\n', ' ').replaceAll("  ", " ");
+		return s.replace('\t', ' ').replace('\n', ' ').replaceAll(" {2}", " ");
 	}
 
 	public static <T> int countValue(Array<T> array, T comparedValue, boolean identity) {
@@ -622,13 +605,13 @@ public final class Utils {
 	}
 
 	public static String capitaliseFirst(String s, @Nullable String regexSeparator) {
-		String res = "";
+		StringBuilder res = new StringBuilder();
 		if (regexSeparator != null)
 			for (String word : s.split(regexSeparator))
-				res += capitaliseFirst(word) + regexSeparator;
+				res.append(capitaliseFirst(word)).append(regexSeparator);
 		else
-			res += Character.toUpperCase(s.charAt(0)) + s.substring(1);
-		return res;
+			res.append(Character.toUpperCase(s.charAt(0))).append(s.substring(1));
+		return res.toString();
 	}
 
 	public static String capitaliseFirst(String s) {
@@ -643,10 +626,10 @@ public final class Utils {
 	}
 
 	public static String repeat(String s, int count) {
-		String res = "";
+		StringBuilder res = new StringBuilder();
 		for (int i = 0; i < count; i++)
-			res += s;
-		return res;
+			res.append(s);
+		return res.toString();
 	}
 
 	public static int getNextIndex(Object[] arr, int startIndex) {
