@@ -65,21 +65,25 @@ abstract class BTDeviceAdapter {
 	static final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 		// Client connection task
 		static final class BTConnectToHostTask extends AsyncTask<Void, Void, Void> {
-			private final BluetoothManager.BluetoothListener btListener;
 			@NonNull
-			private BTPairedDeviceAdapter deviceAdapter;
+			private final BTPairedDeviceAdapter deviceAdapter;
+			private final UUID verificationUUID;
+			private final BluetoothManager.BluetoothListener btListener;
+			@Nullable
+			private BluetoothSocket connectionSocket = null;
 
-			BTConnectToHostTask(@NonNull BTPairedDeviceAdapter deviceAdapter, BluetoothManager.BluetoothListener btListener) {
+			BTConnectToHostTask(@NonNull BTPairedDeviceAdapter deviceAdapter, UUID verificationUUID, BluetoothManager.BluetoothListener btListener) {
 				this.deviceAdapter = deviceAdapter;
+				this.verificationUUID = verificationUUID;
 				this.btListener = btListener;
 			}
 
 			@Override
 			protected Void doInBackground(Void... params) {
 				try {
-					if (deviceAdapter.socket != null) {
-						deviceAdapter.socket.connect();
-					}
+					connectionSocket = deviceAdapter.device.createRfcommSocketToServiceRecord(verificationUUID);
+					if (connectionSocket != null) connectionSocket.connect();
+					else cancel(true);
 				} catch (IOException e) {
 					e.printStackTrace();
 					cancel(true);
@@ -89,7 +93,7 @@ abstract class BTDeviceAdapter {
 
 			@Override
 			protected void onPostExecute(Void aVoid) {
-				BTConnectedDeviceAdapter connected = new BTConnectedDeviceAdapter(deviceAdapter.socket);
+				BTConnectedDeviceAdapter connected = new BTConnectedDeviceAdapter(connectionSocket);
 				btListener.onDeviceConnected(connected);
 				btListener.onConnectedToDevice(connected);
 			}
@@ -97,8 +101,7 @@ abstract class BTDeviceAdapter {
 			@Override
 			protected void onCancelled() {
 				try {
-					if (deviceAdapter.socket != null)
-						deviceAdapter.socket.close();
+					if (connectionSocket != null) connectionSocket.close();
 				} catch (IOException ignored) {
 				}
 			}
@@ -106,8 +109,6 @@ abstract class BTDeviceAdapter {
 
 		@NonNull
 		private final BluetoothDevice device;
-		@Nullable
-		private BluetoothSocket socket = null;
 		@Nullable
 		private BTConnectToHostTask connectTask = null;
 
@@ -117,17 +118,9 @@ abstract class BTDeviceAdapter {
 
 		@Override
 		public void connect(UUID verificationUUID, BluetoothManager.BluetoothListener listener) {
-			if (connectTask != null) {
-				connectTask.cancel(true);
-				connectTask = null;
-			}
-			try {
-				socket = device.createRfcommSocketToServiceRecord(verificationUUID);
-				connectTask = new BTConnectToHostTask(this, listener);
-				connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			if (connectTask != null) connectTask.cancel(true);
+			connectTask = new BTConnectToHostTask(this, verificationUUID, listener);
+			connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 		}
 
 		@Override
