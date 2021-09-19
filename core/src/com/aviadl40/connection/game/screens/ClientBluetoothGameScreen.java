@@ -80,8 +80,8 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		public void onStateChanged(BluetoothState state) {
-			if (state != BluetoothState.TURNING_ON)
-				Connection.btManager.enableDiscovery(state == BluetoothState.ON);
+			// if (state != BluetoothState.TURNING_ON)
+			//	Connection.btManager.enableDiscovery(state == BluetoothState.ON);
 		}
 
 		@Override
