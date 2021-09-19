@@ -66,24 +66,18 @@ abstract class BTDeviceAdapter {
 		// Client connection task
 		static final class BTConnectToHostTask extends AsyncTask<Void, Void, Void> {
 			@NonNull
-			private final BTPairedDeviceAdapter deviceAdapter;
-			private final UUID verificationUUID;
+			private final BluetoothSocket connectionSocket;
 			private final BluetoothManager.BluetoothListener btListener;
-			@Nullable
-			private BluetoothSocket connectionSocket = null;
 
-			BTConnectToHostTask(@NonNull BTPairedDeviceAdapter deviceAdapter, UUID verificationUUID, BluetoothManager.BluetoothListener btListener) {
-				this.deviceAdapter = deviceAdapter;
-				this.verificationUUID = verificationUUID;
+			BTConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager.BluetoothListener btListener) {
+				this.connectionSocket = connectionSocket;
 				this.btListener = btListener;
 			}
 
 			@Override
 			protected Void doInBackground(Void... params) {
 				try {
-					connectionSocket = deviceAdapter.device.createRfcommSocketToServiceRecord(verificationUUID);
-					if (connectionSocket != null) connectionSocket.connect();
-					else cancel(true);
+					connectionSocket.connect();
 				} catch (IOException e) {
 					e.printStackTrace();
 					cancel(true);
@@ -101,7 +95,7 @@ abstract class BTDeviceAdapter {
 			@Override
 			protected void onCancelled() {
 				try {
-					if (connectionSocket != null) connectionSocket.close();
+					connectionSocket.close();
 				} catch (IOException ignored) {
 				}
 			}
@@ -119,8 +113,12 @@ abstract class BTDeviceAdapter {
 		@Override
 		public void connect(UUID verificationUUID, BluetoothManager.BluetoothListener listener) {
 			if (connectTask != null) connectTask.cancel(true);
-			connectTask = new BTConnectToHostTask(this, verificationUUID, listener);
-			connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+			try (BluetoothSocket connectionSocket = device.createRfcommSocketToServiceRecord(verificationUUID)) {
+				connectTask = new BTConnectToHostTask(connectionSocket, listener);
+				connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		@Override

@@ -32,18 +32,13 @@ import java.util.UUID;
 public class AndroidLauncher extends AndroidApplication implements PermissionsManager, BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> {
 	// Server
 	private static final class BTAcceptClientsTask extends AsyncTask<Void, Void, Void> implements Closeable {
+		@NonNull
+		private final BluetoothServerSocket serverSocket;
 		private final Array<BTConnectedDeviceAdapter> connectedDevices;
-		private BluetoothServerSocket serverSocket = null;
 
-		BTAcceptClientsTask(BluetoothAdapter btAdapter, Array<BTConnectedDeviceAdapter> connectedDevices, String name, UUID uuid) {
+		BTAcceptClientsTask(@NonNull BluetoothServerSocket serverSocket, Array<BTConnectedDeviceAdapter> connectedDevices) {
+			this.serverSocket = serverSocket;
 			this.connectedDevices = connectedDevices;
-			try {
-				btAdapter.cancelDiscovery();
-				serverSocket = btAdapter.listenUsingRfcommWithServiceRecord(name, uuid);
-			} catch (IOException e) {
-				e.printStackTrace();
-				onCancelled();
-			}
 		}
 
 		@Override
@@ -68,8 +63,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		@Override
 		protected void onCancelled() {
 			try {
-				if (serverSocket != null)
-					serverSocket.close();
+				serverSocket.close();
 			} catch (IOException ignored) {
 			}
 		}
@@ -181,7 +175,6 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 									break;
 							}
 					}
-
 				}
 			};
 			final IntentFilter btIntentFilter = new IntentFilter();
@@ -304,8 +297,14 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 	public Closeable host(String name, UUID uuid) {
 		if (btTask != null)
 			btTask.cancel(true);
-		btTask = new BTAcceptClientsTask(btAdapter, connectedDevices, name, uuid);
-		return (Closeable) btTask;
+		btAdapter.cancelDiscovery();
+		try (BluetoothServerSocket serverSocket = btAdapter.listenUsingRfcommWithServiceRecord(name, uuid)) {
+			btTask = new BTAcceptClientsTask(serverSocket, connectedDevices);
+			return (Closeable) btTask;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	@Override
