@@ -45,15 +45,15 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 
 		void onDiscoveryStateChanged(boolean enabled);
 
-		void onDiscoverDevice(BluetoothPairedDeviceInterface device);
+		void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered);
 
-		void onConnectedToDevice(BluetoothConnectedDeviceInterface device);
+		void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo);
 
-		void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface device);
+		void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom);
 
-		void onDeviceConnected(BluetoothConnectedDeviceInterface device);
+		void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected);
 
-		void onDeviceDisconnected(BluetoothConnectedDeviceInterface disconnected);
+		void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected);
 
 		void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes);
 	}

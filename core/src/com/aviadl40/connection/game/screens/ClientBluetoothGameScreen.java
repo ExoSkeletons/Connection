@@ -26,7 +26,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		final TextButton startDiscovery = new TextButton("", Gui.skin());
 		@Nullable
-		private BluetoothConnectedDeviceInterface hostInterface;
+		private BluetoothConnectedDeviceInterface hostDevice;
 
 		public ClientBluetoothSetupScreen(ScreenManager.UIScreen prev) {
 			super(prev);
@@ -34,9 +34,9 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		protected ClientBluetoothGameScreen newGame(@NonNull GameParameters params) {
-			if (hostInterface == null)
+			if (hostDevice == null)
 				throw new IllegalArgumentException("Missing game host.");
-			return new ClientBluetoothGameScreen(prev, hostInterface, params);
+			return new ClientBluetoothGameScreen(prev, hostDevice, params);
 		}
 
 		@Override
@@ -93,36 +93,36 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 			startDiscovery.setText(
 					enabled
 							? DESC_DISCOVERING
-							: hostInterface == null ? DESC_RESTART_DISCOVERY : DESC_START_DISCOVERY
+							: hostDevice == null ? DESC_RESTART_DISCOVERY : DESC_START_DISCOVERY
 			);
 		}
 
 		@Override
-		public void onDiscoverDevice(BluetoothPairedDeviceInterface device) {
+		public void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered) {
 			Connection.btManager.enableDiscovery(false);
-			device.connect(Connection.BT_UUID, this);
+			deviceDiscovered.connect(Connection.BT_UUID, this); // Attempt to connect to host
 		}
 
 		@Override
-		public void onConnectedToDevice(BluetoothConnectedDeviceInterface device) {
-			if (hostInterface != null)
-				hostInterface = device;
+		public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
+			if (hostDevice == null)
+				hostDevice = deviceConnectedTo;
 		}
 
 		@Override
-		public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface device) {
-			if (device == hostInterface) {
-				hostInterface = null;
+		public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom) {
+			if (deviceDisconnectedFrom == hostDevice) {
+				hostDevice = null;
 				// TODO: show msg
 			}
 		}
 
 		@Override
-		public void onDeviceConnected(BluetoothConnectedDeviceInterface device) {
+		public void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected) {
 		}
 
 		@Override
-		public void onDeviceDisconnected(BluetoothConnectedDeviceInterface disconnected) {
+		public void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected) {
 		}
 
 		@Override
@@ -178,24 +178,24 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 	}
 
 	@Override
-	public void onDiscoverDevice(BluetoothPairedDeviceInterface device) {
+	public void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered) {
 	}
 
 	@Override
-	public void onConnectedToDevice(BluetoothConnectedDeviceInterface device) {
+	public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
 	}
 
 	@Override
-	public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface device) {
+	public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom) {
 		// TODO: show msg, stop game
 	}
 
 	@Override
-	public void onDeviceConnected(BluetoothConnectedDeviceInterface device) {
+	public void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected) {
 	}
 
 	@Override
-	public void onDeviceDisconnected(BluetoothConnectedDeviceInterface disconnected) {
+	public void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected) {
 	}
 
 	@Override

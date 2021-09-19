@@ -288,23 +288,23 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		}
 
 		@Override
-		public void onDiscoverDevice(BluetoothPairedDeviceInterface device) {
+		public void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered) {
 		}
 
 		@Override
-		public void onConnectedToDevice(BluetoothConnectedDeviceInterface device) {
+		public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
 		}
 
 		@Override
-		public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface device) {
+		public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom) {
 		}
 
 		@Override
-		public void onDeviceConnected(BluetoothConnectedDeviceInterface device) {
+		public void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected) {
 		}
 
 		@Override
-		public void onDeviceDisconnected(BluetoothConnectedDeviceInterface disconnected) {
+		public void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected) {
 		}
 
 		@Override
@@ -407,26 +407,26 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	}
 
 	@Override
-	public void onDiscoverDevice(BluetoothPairedDeviceInterface device) {
+	public void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered) {
 	}
 
 	@Override
-	public void onConnectedToDevice(BluetoothConnectedDeviceInterface device) {
+	public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
 	}
 
 	@Override
-	public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface device) {
+	public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom) {
 	}
 
 	@Override
-	public void onDeviceConnected(BluetoothConnectedDeviceInterface device) {
+	public void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected) {
 	}
 
 	@Override
-	public void onDeviceDisconnected(BluetoothConnectedDeviceInterface disconnected) {
+	public void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected) {
 		Player p;
 		for (byte pi = (byte) (params.players.size - 1); pi >= 0; pi--)
-			if ((p = params.players.get(pi)) instanceof BTPlayer && ((BTPlayer) p).deviceInterface == disconnected) {
+			if ((p = params.players.get(pi)) instanceof BTPlayer && ((BTPlayer) p).deviceInterface == deviceDisconnected) {
 				removePlayer(pi);
 				break;
 			}
