@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "ConstantConditions"})
 public final class Settings {
 	public static boolean
 			DEV_MODE = true,
@@ -15,24 +15,16 @@ public final class Settings {
 			sfxEnabled = true,
 			drawBorders = false,
 			moreInfo = false,
-			BT_READY = false,
+			BT_READY = DEV_MODE,
 			NET_READY = false;
 
 	public static boolean save() {
-		ObjectOutputStream os = null;
-		try {
-			os = new ObjectOutputStream(Gdx.files.local(Const.FileList.settings.getPath()).write(false));
+		try (ObjectOutputStream os = new ObjectOutputStream(Gdx.files.local(Const.FileList.settings.getPath()).write(false))) {
 			os.writeBoolean(musicEnabled);
 			os.writeBoolean(sfxEnabled);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
-		} finally {
-			try {
-				if (os != null)
-					os.close();
-			} catch (Exception ignored) {
-			}
 		}
 		return true;
 	}
