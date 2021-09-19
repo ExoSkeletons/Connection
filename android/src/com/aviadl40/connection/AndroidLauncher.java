@@ -33,13 +33,11 @@ import java.util.UUID;
 
 public class AndroidLauncher extends AndroidApplication implements PermissionsManager, BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> {
 	// Server
-	private static final class BTAcceptClientsTask extends AsyncTask<Object, BTConnectedDeviceAdapter, Void> implements Closeable {
-		@NonNull
-		private final BluetoothServerSocket serverSocket;
+	private static final class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTConnectedDeviceAdapter> {
 		private final Array<BTConnectedDeviceAdapter> connectedDevices;
 
 		BTAcceptClientsTask(@NonNull BluetoothServerSocket serverSocket, Array<BTConnectedDeviceAdapter> connectedDevices) {
-			this.serverSocket = serverSocket;
+			super(serverSocket);
 			this.connectedDevices = connectedDevices;
 		}
 
@@ -48,7 +46,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 			while (!isCancelled())
 				try {
 					// Wait for incoming requests
-					publishProgress(new BTConnectedDeviceAdapter(serverSocket.accept()));
+					publishProgress(new BTConnectedDeviceAdapter(socket.accept()));
 				} catch (IOException e) {
 					e.printStackTrace();
 					if (!(e instanceof SocketTimeoutException))
@@ -63,16 +61,8 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		}
 
 		@Override
-		public void close() {
-			cancel(true);
-		}
-
-		@Override
-		protected void onCancelled() {
-			try {
-				serverSocket.close();
-			} catch (IOException ignored) {
-			}
+		protected void onPostExecute(Void aVoid) {
+			close();
 		}
 	}
 
@@ -122,16 +112,17 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 
 	private static final int REQ_MAKE_DISCOVERABLE = 8574;
 
+	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 	private final Array<BTPairedDeviceAdapter> pairedDevices = new Array<>();
 	private final Array<BTConnectedDeviceAdapter> connectedDevices = new Array<>();
 	private BroadcastReceiver btBroadcastHandle;
 	@Nullable
 	private BluetoothManager.BluetoothListener btListener = null;
-	private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
+
 	@Nullable
-	private AsyncTask<?, ?, ?> btTask = null;
+	private BTAcceptClientsTask btAcceptTask = null;
 	@Nullable
-	private BTReadLoopTask readLoopTask = null;
+	private BTReadLoopTask btReadLoopTask = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -154,8 +145,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 								case BluetoothAdapter.ACTION_STATE_CHANGED:
 									prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE, BluetoothAdapter.STATE_OFF);
 									int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, prev);
-									if (state != prev)
-										btListener.onStateChanged(getState(state));
+									if (state != prev) btListener.onStateChanged(getState(state));
 									break;
 								case BluetoothAdapter.ACTION_SCAN_MODE_CHANGED:
 									prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_SCAN_MODE, BluetoothAdapter.SCAN_MODE_NONE);
@@ -175,15 +165,24 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 								case BluetoothDevice.ACTION_FOUND:
 									final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 									if (device != null) {
-										final BTPairedDeviceAdapter btDeviceInterface = new BTPairedDeviceAdapter(device);
-										pairedDevices.add(btDeviceInterface);
-										btListener.onDiscoverDevice(btDeviceInterface);
+										boolean paired = false;
+										for (BTPairedDeviceAdapter pd : pairedDevices)
+											if (pd.getDevice().equals(device)) {
+												paired = true;
+												break;
+											}
+										if (!paired) {
+											final BTPairedDeviceAdapter btDeviceInterface = new BTPairedDeviceAdapter(device);
+											pairedDevices.add(btDeviceInterface);
+											btListener.onDiscoverDevice(btDeviceInterface);
+										}
 									}
 									break;
 							}
 					}
 				}
 			};
+			// TODO: register device disconnections, and close sockets.
 			final IntentFilter btIntentFilter = new IntentFilter();
 			btIntentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
 			btIntentFilter.addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
@@ -193,17 +192,17 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 			registerReceiver(btBroadcastHandle, btIntentFilter);
 		}
 
-		(readLoopTask = new BTReadLoopTask(this)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+		(btReadLoopTask = new BTReadLoopTask(this)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
 		initialize(new Connection(this, this), config);
 	}
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (requestCode == REQ_MAKE_DISCOVERABLE)
-			if (resultCode == RESULT_CANCELED)
-				if (btListener != null)
-					btListener.onDiscoverableStateChanged(false);
+		if (requestCode == REQ_MAKE_DISCOVERABLE) if (resultCode == RESULT_CANCELED)
+			if (btListener != null)
+				btListener.onDiscoverableStateChanged(false);
+
 		super.onActivityResult(requestCode, resultCode, data);
 	}
 
@@ -211,10 +210,8 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 	protected void onDestroy() {
 		super.onDestroy();
 		unregisterReceiver(btBroadcastHandle);
-		if (btTask != null)
-			btTask.cancel(true);
-		if (readLoopTask != null)
-			readLoopTask.cancel(true);
+		if (btAcceptTask != null) btAcceptTask.cancel(true);
+		if (btReadLoopTask != null) btReadLoopTask.cancel(true);
 		btAdapter.cancelDiscovery();
 	}
 
@@ -305,13 +302,15 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 
 	@Override
 	public Closeable host(String name, UUID uuid) {
-		if (btTask != null)
-			btTask.cancel(true);
+		if (btAcceptTask != null) btAcceptTask.cancel(true);
 		btAdapter.cancelDiscovery();
-		try (BluetoothServerSocket serverSocket = btAdapter.listenUsingRfcommWithServiceRecord(name, uuid)) {
-			btTask = new BTAcceptClientsTask(serverSocket, connectedDevices);
-			btTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-			return (Closeable) btTask;
+		try {
+			BluetoothServerSocket serverSocket = btAdapter.listenUsingRfcommWithServiceRecord(name, uuid);
+			btAcceptTask = new BTAcceptClientsTask(serverSocket, connectedDevices);
+			btAcceptTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+			// NOTE: we do not close the server socket, as the accept task just got it and needs it open.
+			// The accept task therefore is now the one in charge of closing the socket after it's done.
+			return btAcceptTask;
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
@@ -350,6 +349,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 				LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 				if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 					startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+					return;
 				}
 			}
 

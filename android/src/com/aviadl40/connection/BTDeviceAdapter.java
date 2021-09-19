@@ -8,6 +8,7 @@ import android.support.annotation.Nullable;
 
 import com.aviadl40.connection.game.managers.BluetoothManager;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -64,20 +65,18 @@ abstract class BTDeviceAdapter {
 
 	static final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 		// Client connection task
-		static final class BTConnectToHostTask extends AsyncTask<Object, Void, Void> {
-			@NonNull
-			private final BluetoothSocket connectionSocket;
+		static final class BTConnectToHostTask extends BTSocketTask<BluetoothSocket, Void> {
 			private final BluetoothManager.BluetoothListener btListener;
 
 			BTConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager.BluetoothListener btListener) {
-				this.connectionSocket = connectionSocket;
+				super(connectionSocket);
 				this.btListener = btListener;
 			}
 
 			@Override
 			protected Void doInBackground(Object... params) {
 				try {
-					connectionSocket.connect();
+					socket.connect();
 				} catch (IOException e) {
 					e.printStackTrace();
 					cancel(true);
@@ -87,17 +86,9 @@ abstract class BTDeviceAdapter {
 
 			@Override
 			protected void onPostExecute(Void aVoid) {
-				BTConnectedDeviceAdapter connected = new BTConnectedDeviceAdapter(connectionSocket);
+				BTConnectedDeviceAdapter connected = new BTConnectedDeviceAdapter(socket);
 				btListener.onDeviceConnected(connected);
 				btListener.onConnectedToDevice(connected);
-			}
-
-			@Override
-			protected void onCancelled() {
-				try {
-					connectionSocket.close();
-				} catch (IOException ignored) {
-				}
 			}
 		}
 
@@ -111,13 +102,18 @@ abstract class BTDeviceAdapter {
 		}
 
 		@Override
-		public void connect(UUID verificationUUID, BluetoothManager.BluetoothListener listener) {
+		public Closeable connect(UUID verificationUUID, BluetoothManager.BluetoothListener listener) {
 			if (connectTask != null) connectTask.cancel(true);
-			try (BluetoothSocket connectionSocket = device.createRfcommSocketToServiceRecord(verificationUUID)) {
+			try {
+				BluetoothSocket connectionSocket = device.createRfcommSocketToServiceRecord(verificationUUID);
 				connectTask = new BTConnectToHostTask(connectionSocket, listener);
 				connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+				// NOTE: we do not close the socket, as the connect task just got it and needs it open.
+				// The connect task therefore is now the one in charge of closing the socket after it's done.
+				return connectTask;
 			} catch (IOException e) {
 				e.printStackTrace();
+				return null;
 			}
 		}
 
