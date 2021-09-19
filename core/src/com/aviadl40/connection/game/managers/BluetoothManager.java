@@ -27,7 +27,7 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 	}
 
 	interface BluetoothPairedDeviceInterface {
-		void connect(UUID verificationUUID, BluetoothListener listener);
+		Closeable connect(UUID verificationUUID, BluetoothListener listener);
 
 		String getName();
 	}
