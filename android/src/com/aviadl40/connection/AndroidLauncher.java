@@ -31,7 +31,7 @@ import java.util.UUID;
 
 public class AndroidLauncher extends AndroidApplication implements PermissionsManager, BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> {
 	// Server
-	private static final class BTAcceptClientsTask extends AsyncTask<Void, Void, Void> implements Closeable {
+	private static final class BTAcceptClientsTask extends AsyncTask<Object, BTConnectedDeviceAdapter, Void> implements Closeable {
 		@NonNull
 		private final BluetoothServerSocket serverSocket;
 		private final Array<BTConnectedDeviceAdapter> connectedDevices;
@@ -42,17 +42,22 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		}
 
 		@Override
-		protected Void doInBackground(Void[] params) {
+		protected Void doInBackground(Object... params) {
 			while (!isCancelled())
 				try {
 					// Wait for incoming requests
-					connectedDevices.add(new BTConnectedDeviceAdapter(serverSocket.accept()));
+					publishProgress(new BTConnectedDeviceAdapter(serverSocket.accept()));
 				} catch (IOException e) {
 					e.printStackTrace();
 					if (!(e instanceof SocketTimeoutException))
 						cancel(true);
 				}
 			return null;
+		}
+
+		@Override
+		protected void onProgressUpdate(BTConnectedDeviceAdapter... connectedDevices) {
+			this.connectedDevices.addAll(connectedDevices);
 		}
 
 		@Override
@@ -300,6 +305,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		btAdapter.cancelDiscovery();
 		try (BluetoothServerSocket serverSocket = btAdapter.listenUsingRfcommWithServiceRecord(name, uuid)) {
 			btTask = new BTAcceptClientsTask(serverSocket, connectedDevices);
+			btTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 			return (Closeable) btTask;
 		} catch (IOException e) {
 			e.printStackTrace();

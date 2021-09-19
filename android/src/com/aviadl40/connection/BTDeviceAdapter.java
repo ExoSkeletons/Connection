@@ -64,7 +64,7 @@ abstract class BTDeviceAdapter {
 
 	static final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 		// Client connection task
-		static final class BTConnectToHostTask extends AsyncTask<Void, Void, Void> {
+		static final class BTConnectToHostTask extends AsyncTask<Object, Void, Void> {
 			@NonNull
 			private final BluetoothSocket connectionSocket;
 			private final BluetoothManager.BluetoothListener btListener;
@@ -75,7 +75,7 @@ abstract class BTDeviceAdapter {
 			}
 
 			@Override
-			protected Void doInBackground(Void... params) {
+			protected Void doInBackground(Object... params) {
 				try {
 					connectionSocket.connect();
 				} catch (IOException e) {
