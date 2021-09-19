@@ -9,9 +9,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -220,6 +222,8 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		switch (perm) {
 			case BLUETOOTH:
 				return Manifest.permission.BLUETOOTH;
+			case BLUETOOTH_ADMIN:
+				return Manifest.permission.BLUETOOTH_ADMIN;
 			case LOCATION_COARSE:
 				return Manifest.permission.ACCESS_COARSE_LOCATION;
 			case LOCATION_FINE:
@@ -266,8 +270,9 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 	@Override
 	public void requestEnable(boolean enable) {
 		if (!bluetoothSupported()) return;
-		if (enable && !hasPermissions(Permission.BLUETOOTH, Permission.LOCATION_COARSE, Permission.LOCATION_FINE)) {
-			requestPermissions(Permission.LOCATION_FINE, Permission.LOCATION_COARSE, Permission.BLUETOOTH);
+		Permission[] permissions = {Permission.BLUETOOTH, Permission.BLUETOOTH_ADMIN, Permission.LOCATION_COARSE, Permission.LOCATION_FINE};
+		if (enable && !hasPermissions(permissions)) {
+			requestPermissions(permissions);
 			requestEnable(false);
 			if (btListener != null)
 				btListener.onStateChanged(BluetoothState.OFF);
@@ -338,8 +343,18 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 	public void enableDiscovery(boolean enabled) {
 		if (!bluetoothSupported()) return;
 		btAdapter.cancelDiscovery();
-		if (enabled)
+		if (enabled) {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+				// Android 10 and above require location services to be enabled
+				// in order to perform bluetooth discovery
+				LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+				if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+					startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+				}
+			}
+
 			btAdapter.startDiscovery();
+		}
 	}
 
 	@Override
