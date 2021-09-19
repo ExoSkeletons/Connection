@@ -7,6 +7,7 @@ import java.io.IOException;
 public interface PermissionsManager {
 	enum Permission {
 		BLUETOOTH,
+		BLUETOOTH_ADMIN,
 		LOCATION_COARSE,
 		LOCATION_FINE,
 		INTERNET,
