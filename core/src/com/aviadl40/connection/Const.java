@@ -5,8 +5,6 @@ import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 
-import java.util.Objects;
-
 public final class Const {
 	public enum Folder {
 		textures(Extension.png),
@@ -49,7 +47,7 @@ public final class Const {
 		}
 
 		public String getChildPath(String fileName) {
-			return getPath() + fileName + Objects.toString(extension, "");
+			return getPath() + fileName + (extension == null ? "" : extension.toString());
 		}
 
 		public FileHandle getChildHandle(String fileName, Files.FileType fileType) {
@@ -64,7 +62,8 @@ public final class Const {
 
 	enum FileList {
 		title(Folder.textures),
-		settings(Folder.bin),;
+		settings(Folder.bin),
+		;
 
 		private final Folder parent;
 		private final Extension extension;
