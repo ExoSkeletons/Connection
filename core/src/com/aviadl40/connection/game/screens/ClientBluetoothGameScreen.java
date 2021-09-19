@@ -25,6 +25,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 				DESC_RESTART_DISCOVERY = "Search again";
 
 		final TextButton startDiscovery = new TextButton("", Gui.skin());
+
 		@Nullable
 		private BluetoothConnectedDeviceInterface hostDevice;
 
