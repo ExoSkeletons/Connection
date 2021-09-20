@@ -44,8 +44,11 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		@Override
 		protected Void doInBackground(Object... params) {
 			while (!isCancelled())
+				// Loop accepting forever, until accepting is canceled.
 				try {
 					// Wait for incoming requests
+					// NOTE: Cancelling the task closes the socket and closing the socket aborts
+					// the blocking done by accept() so we do not need to worry.
 					publishProgress(new BTConnectedDeviceAdapter(socket.accept()));
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -138,9 +141,10 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 				@Override
 				public void onReceive(Context context, Intent intent) {
 					if (btListener != null && intent != null) {
-						String action = intent.getAction();
+						final String action = intent.getAction();
 						int prev;
-						if (action != null)
+
+						if (action != null) {
 							switch (action) {
 								case BluetoothAdapter.ACTION_STATE_CHANGED:
 									prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE, BluetoothAdapter.STATE_OFF);
@@ -161,10 +165,12 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 								case BluetoothAdapter.ACTION_DISCOVERY_FINISHED:
 									btListener.onDiscoveryStateChanged(false);
 									break;
+							}
 
-								case BluetoothDevice.ACTION_FOUND:
-									final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-									if (device != null) {
+							final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+							if (device != null) {
+								switch (action) {
+									case BluetoothDevice.ACTION_FOUND:
 										boolean paired = false;
 										for (BTPairedDeviceAdapter pd : pairedDevices)
 											if (pd.getDevice().equals(device)) {
@@ -176,19 +182,45 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 											pairedDevices.add(btDeviceInterface);
 											btListener.onDiscoverDevice(btDeviceInterface);
 										}
-									}
-									break;
+										break;
+									case BluetoothDevice.ACTION_ACL_CONNECTED:
+										// Connected device interfaces are created on-connection inside
+										// the accept Task, where we have the socket to pass
+										break;
+									case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
+										prev = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.BOND_NONE);
+										int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, prev);
+										break;
+									case BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED:
+									case BluetoothDevice.ACTION_ACL_DISCONNECTED:
+										// Register device disconnections, and close connected sockets.
+										for (int i = pairedDevices.size - 1; i >= 0; i--)
+											if (pairedDevices.get(i).getDevice().equals(device)) {
+												pairedDevices.removeIndex(i);
+												return;
+											}
+										for (int i = connectedDevices.size - 1; i >= 0; i--)
+											if (connectedDevices.get(i).getDevice().equals(device)) {
+												connectedDevices.get(i).closeConnection();
+												return;
+											}
+										break;
+								}
 							}
+						}
 					}
 				}
 			};
-			// TODO: register device disconnections, and close sockets.
 			final IntentFilter btIntentFilter = new IntentFilter();
 			btIntentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
 			btIntentFilter.addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
 			btIntentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
 			btIntentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
 			btIntentFilter.addAction(BluetoothDevice.ACTION_FOUND);
+			btIntentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+			btIntentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+			btIntentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+			btIntentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
 			registerReceiver(btBroadcastHandle, btIntentFilter);
 		}
 

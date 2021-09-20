@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.Array;
 import java.io.Closeable;
 import java.util.UUID;
 
-public interface BluetoothManager<BTPairedDevice extends BluetoothManager.BluetoothPairedDeviceInterface, BTConnectedDevice extends Closeable> {
+public interface BluetoothManager<BTPairedDevice extends BluetoothManager.BluetoothPairedDeviceInterface, BTConnectedDevice extends BluetoothManager.BluetoothConnectedDeviceInterface> {
 	enum BluetoothState {
 		ON,
 		OFF,
@@ -32,8 +32,8 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 		String getName();
 	}
 
-	interface BluetoothConnectedDeviceInterface extends Closeable {
-		void disconnect();
+	interface BluetoothConnectedDeviceInterface {
+		void closeConnection();
 
 		String getName();
 	}

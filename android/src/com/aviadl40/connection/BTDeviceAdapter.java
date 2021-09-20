@@ -23,7 +23,7 @@ abstract class BTDeviceAdapter {
 		}
 
 		@Override
-		public void disconnect() {
+		public void closeConnection() {
 			if (socket != null)
 				try {
 					socket.close();
@@ -51,11 +51,6 @@ abstract class BTDeviceAdapter {
 			return getDevice().getName();
 		}
 
-		@Override
-		public void close() throws IOException {
-			socket.close();
-		}
-
 		@NonNull
 		@Override
 		BluetoothDevice getDevice() {
@@ -76,6 +71,9 @@ abstract class BTDeviceAdapter {
 			@Override
 			protected Void doInBackground(Object... params) {
 				try {
+					// Try and connect to host
+					// NOTE: Cancelling the task closes the socket and closing the socket aborts
+					// the blocking done by connect() so we do not need to worry.
 					socket.connect();
 				} catch (IOException e) {
 					e.printStackTrace();
