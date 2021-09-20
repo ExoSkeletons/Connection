@@ -345,11 +345,10 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	@Override
 	protected void makeMove(Move move) {
 		applyMove(move, params.players, getPI(), board, pieces);
-		// Send move to players (except current)
-		Player p;
+		// Send move to players
 		byte[] bytes = {CODE_MADE_MOVE, move.x, move.y, move.i};
-		for (int pi = 0; pi < params.players.size; pi++)
-			if (pi != getPI() && (p = params.players.get(pi)) instanceof BTPlayer)
+		for (Player p : params.players)
+			if (p instanceof BTPlayer)
 				Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
 		nextPlayer();
 	}
@@ -436,12 +435,15 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
 		byte opCode = bytes[0];
 
-		if (opCode == CODE_MADE_MOVE) {
-			for (byte pi = 0; pi < params.players.size; pi++)
-				if (params.players.get(pi) instanceof BTPlayer && pi == getPI())
-					makeMove(new Move(bytes[1], bytes[2], bytes[3]));
+		if (opCode == CODE_MADE_MOVE) { // Client requests to make a move
+			if (bytes[1] == getPI()) { // Check if it's client's turn
+				Move move = new Move(bytes[2], bytes[3], bytes[4]);
+				if (isMovePossible(move, board, pieces[getPI()])) // Client should never send illegal moves, but check just in case
+					makeMove(move); // Move ok, send it out
+			}
 		} else if (opCode == CODE_PLAYER_LEFT)
-			from.disconnect();
+			/*from.closeConnection();*/
+			removePlayer(bytes[1]);
 	}
 
 	@Override

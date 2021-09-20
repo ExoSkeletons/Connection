@@ -157,8 +157,9 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 	@Override
 	protected void makeMove(Move move) {
-		// Send move to host
-		Connection.btManager.writeTo(hostInterface, new byte[]{HostGameScreen.CODE_MADE_MOVE, move.x, move.y, move.i});
+		// Send move request to host
+		Connection.btManager.writeTo(hostInterface, new byte[]{HostGameScreen.CODE_MADE_MOVE, getPI(), move.x, move.y, move.i});
+		// TODO: disable UI to stop player from spamming this until host responds
 	}
 
 	@Override
@@ -205,14 +206,11 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		if (opCode == HostGameScreen.CODE_GAME_CLOSED) ; //TODO: show msg, stop game
 		else if (opCode == HostGameScreen.CODE_GAME_RESTARTED) restart();
-		else if (opCode == HostGameScreen.CODE_PLAYER_LEFT) { // disconnections
-			if (getPI() == bytes[1]) nextPlayer();
-			removePlayer(bytes[1]);
-		} else if (opCode == HostGameScreen.CODE_MADE_MOVE)
-			if (params.players.get(getPI()) instanceof BTPlayer) {
-				makeMove(new Move(bytes[1], bytes[2], bytes[3]));
-				nextPlayer();
-			}
+		else if (opCode == HostGameScreen.CODE_PLAYER_LEFT) removePlayer(bytes[1]);
+		else if (opCode == HostGameScreen.CODE_MADE_MOVE) {
+			applyMove(new Move(bytes[1], bytes[2], bytes[3]), params.players, getPI(), board, pieces);
+			nextPlayer();
+		}
 	}
 
 	@Override
