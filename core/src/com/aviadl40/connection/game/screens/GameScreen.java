@@ -595,7 +595,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		);
 	}
 
-	private static boolean isMovePossible(Move move, Player[][][] board, byte[] myPieces) {
+	static boolean isMovePossible(Move move, Player[][][] board, byte[] myPieces) {
 		return move != null && myPieces[move.i] > 0 && board[move.x][move.y][move.i] == null;
 	}
 
@@ -901,6 +901,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 	void removePlayer(byte pi) {
 		params.players.removeIndex(pi);
+		if (pi == getPI()) nextPlayer();
 	}
 
 	@Override
