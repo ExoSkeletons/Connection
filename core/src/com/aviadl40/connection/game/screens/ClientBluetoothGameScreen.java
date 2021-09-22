@@ -145,9 +145,9 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 				// TODO: send/receive color
 				byte[] stringBytes = new byte[bytes.length - 1];
 				System.arraycopy(bytes, 1, stringBytes, 0, stringBytes.length);
-				addPlayer(new BTPlayer(new String(stringBytes), null));
+				super.addPlayer(new BTPlayer(new String(stringBytes), null));
 			} else if (opCode == HostGameScreen.CODE_PLAYER_LEFT)
-				removePlayer(bytes[1]);
+				super.removePlayer(bytes[1]);
 			else if (opCode == HostGameScreen.CODE_PLAYER_CHANGED_NAME) {
 				Player p;
 				for (int pi = 0; pi < params.players.size; pi++)
