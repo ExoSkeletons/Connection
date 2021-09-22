@@ -129,4 +129,9 @@ abstract class BTDeviceAdapter {
 
 	@NonNull
 	abstract BluetoothDevice getDevice();
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		return obj instanceof BTDeviceAdapter && getDevice().equals(((BTDeviceAdapter) obj).getDevice());
+	}
 }
