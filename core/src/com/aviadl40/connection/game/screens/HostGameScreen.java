@@ -145,8 +145,12 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			startGame.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
-					if (errorLevel < 3 || Settings.moreInfo)
+					if (errorLevel < 3 || Settings.moreInfo) {
+						for (Player p : params.players)
+							if (p instanceof BTPlayer)
+								Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, new byte[]{CODE_GAME_STARTED});
 						startGame();
+					}
 				}
 			});
 			startGame.setSize(Gdx.graphics.getWidth() - Gui.sparsity() * 2, Gui.buttonSize());
