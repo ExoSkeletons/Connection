@@ -514,6 +514,26 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			playerListScroll.scrollTo(0, 0, 0, 0);
 		}
 
+		final void addHuman() {
+			Human h = new LocalPlayer();
+			byte num = 1;
+			for (Player p : params.players)
+				if (p.getClass() == h.getClass())
+					num++;
+			h.name = "Player " + num;
+			addPlayer(h);
+		}
+
+		final void addBot() {
+			Bot b = new Bot();
+			byte num = 1;
+			for (Player p : params.players)
+				if (p.getClass() == b.getClass())
+					num++;
+			b.name = "Bot " + num;
+			addPlayer(b);
+		}
+
 		protected boolean canRemovePlayer(Player p) {
 			return false;
 		}

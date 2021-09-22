@@ -53,37 +53,24 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			final Table addPlayers = new Table(Gui.skin());
 			final TextButton addHuman = new TextButton("Add Player", Gui.skin());
 			addHuman.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
-			ClickListener hcl = new ClickListener() {
+			addHuman.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
-					Human h = new LocalPlayer();
-					byte num = 1;
-					for (Player p : params.players)
-						if (p.getClass() == h.getClass())
-							num++;
-					h.name = "Player " + num;
-					addPlayer(h);
+					addHuman();
 				}
-			};
-			addHuman.addListener(hcl);
-			for (byte n = 0; n < 1; n++)
-				hcl.clicked(null, 0, 0);
+			});
 			final TextButton addBot = new TextButton("Add Bot", Gui.skin());
 			addBot.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
-					Bot b = new Bot();
-					byte num = 1;
-					for (Player p : params.players)
-						if (p.getClass() == b.getClass())
-							num++;
-					b.name = "Bot " + num;
-					addPlayer(b);
+					addBot();
 				}
 			});
 			addBot.getLabel().setStyle(addHuman.getLabel().getStyle());
 			addPlayers.add(addHuman).fill().growX().minWidth(Gui.buttonSizeSmall()).padRight(Gui.sparsity() / 2);
 			addPlayers.add(addBot).fill().growX().minWidth(Gui.buttonSizeSmall()).padLeft(Gui.sparsity() / 2);
+			// Add initial Human
+			addHuman();
 
 			// Host
 			Table hostTable = new Table();
@@ -305,10 +292,19 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 		@Override
 		public void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected) {
+			for (int i = params.players.size - 1; i >= 0; i--)
+				if (params.players.get(i) instanceof BTPlayer && ((BTPlayer) params.players.get(i)).deviceInterface.equals(deviceDisconnected))
+					params.players.removeIndex(i);
 		}
 
 		@Override
 		public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
+			byte opCode = bytes[0];
+
+			if (opCode == CODE_PLAYER_JOINED)
+				addPlayer(new BTPlayer(new String(bytes), from));
+			else if (opCode == CODE_PLAYER_LEFT)
+				removePlayer(bytes[1]);
 		}
 
 		@Override
@@ -322,6 +318,11 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		BTPlayer(@NonNull String name, BluetoothConnectedDeviceInterface deviceInterface) {
 			super(name);
 			this.deviceInterface = deviceInterface;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof BTPlayer && (((BTPlayer) o).deviceInterface.equals(deviceInterface));
 		}
 	}
 
