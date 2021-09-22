@@ -292,6 +292,16 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 		@Override
 		public void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected) {
+			// Inform device of lobby state
+			for (Player p : params.players) {
+				byte[] nameBytes = p.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+				bytes[0] = CODE_PLAYER_JOINED;
+				System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
+				Connection.btManager.writeTo(deviceConnected, bytes);
+			}
+			Connection.btManager.writeTo(deviceConnected, new byte[]{HostGameScreen.CODE_BOARD_CHANGED_SIZE, params.size});
+			// Welcome device to lobby
+			Connection.btManager.writeTo(deviceConnected, new byte[]{CODE_LOBBY_WELCOME});
 		}
 
 		@Override
@@ -330,6 +340,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		}
 	}
 
+	static final byte
+			CODE_LOBBY_WELCOME = 5;
 	static final byte
 			CODE_GAME_CLOSED = 10,
 			CODE_GAME_STARTED = 11,

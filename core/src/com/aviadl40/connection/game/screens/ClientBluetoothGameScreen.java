@@ -79,6 +79,14 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		}
 
 		@Override
+		void addPlayer(Player p) {
+			byte[] nameBytes = p.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+			bytes[0] = HostGameScreen.CODE_PLAYER_JOINED;
+			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
+			Connection.btManager.writeTo(hostDevice, bytes); // Request player join from host
+		}
+
+		@Override
 		public void onStateChanged(BluetoothState state) {
 			// if (state != BluetoothState.TURNING_ON)
 			//	Connection.btManager.enableDiscovery(state == BluetoothState.ON);
@@ -106,8 +114,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
-			if (hostDevice == null)
-				hostDevice = deviceConnectedTo;
+			if (hostDevice == null) hostDevice = deviceConnectedTo;
 		}
 
 		@Override
@@ -115,6 +122,8 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 			if (deviceDisconnectedFrom == hostDevice) {
 				hostDevice = null;
 				// TODO: show msg
+				params.players.clear();
+				updatePlayerTable();
 			}
 		}
 
@@ -130,7 +139,9 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
 			byte opCode = bytes[0];
 
-			if (opCode == HostGameScreen.CODE_PLAYER_JOINED) {
+			if (opCode == HostGameScreen.CODE_LOBBY_WELCOME)
+				addHuman();
+			else if (opCode == HostGameScreen.CODE_PLAYER_JOINED) {
 				// TODO: send/receive color
 				byte[] stringBytes = new byte[bytes.length - 1];
 				System.arraycopy(bytes, 1, stringBytes, 0, stringBytes.length);
@@ -147,7 +158,8 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 						updatePlayerTable();
 						break;
 					}
-			} else if (opCode == HostGameScreen.CODE_GAME_STARTED) startGame();
+			} else if (opCode == HostGameScreen.CODE_GAME_STARTED)
+				startGame();
 		}
 	}
 
