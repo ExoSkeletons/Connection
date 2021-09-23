@@ -28,17 +28,19 @@ import com.badlogic.gdx.utils.ByteArray;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.util.UUID;
 
 public class AndroidLauncher extends AndroidApplication implements PermissionsManager, BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> {
 	// Server
-	private static final class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTConnectedDeviceAdapter> {
-		private final Array<BTConnectedDeviceAdapter> connectedDevices;
+	private final static class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTConnectedDeviceAdapter> {
+		private final BluetoothManager<?, BTConnectedDeviceAdapter> btManager;
 
-		BTAcceptClientsTask(@NonNull BluetoothServerSocket serverSocket, Array<BTConnectedDeviceAdapter> connectedDevices) {
+		BTAcceptClientsTask(@NonNull BluetoothServerSocket serverSocket, BluetoothManager<?, BTConnectedDeviceAdapter> btManager) {
 			super(serverSocket);
-			this.connectedDevices = connectedDevices;
+			this.btManager = btManager;
 		}
 
 		@Override
@@ -51,7 +53,6 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 					// the blocking done by accept() so we do not need to worry.
 					publishProgress(new BTConnectedDeviceAdapter(socket.accept()));
 				} catch (IOException e) {
-					e.printStackTrace();
 					if (!(e instanceof SocketTimeoutException))
 						cancel(true);
 				}
@@ -59,13 +60,23 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		}
 
 		@Override
-		protected void onProgressUpdate(BTConnectedDeviceAdapter... connectedDevices) {
-			this.connectedDevices.addAll(connectedDevices);
+		protected void onProgressUpdate(BTConnectedDeviceAdapter... progress) {
+			btManager.getConnectedDevices().addAll(progress);
+			BluetoothListener btListener = btManager.getBluetoothListener();
+			if (btListener != null)
+				for (BTConnectedDeviceAdapter connectedDevice : progress)
+					btListener.onDeviceConnected(connectedDevice);
 		}
 
 		@Override
 		protected void onPostExecute(Void aVoid) {
 			close();
+		}
+
+		@NonNull
+		@Override
+		public String toString() {
+			return "BT Accept connections Looper Task" + " | " + super.toString();
 		}
 	}
 
@@ -81,20 +92,29 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		protected Void doInBackground(Void... voids) {
 			System.out.println("starting read task.");
 			while (!isCancelled()) {
-				byte[] buffer = new byte[1024];
-				int count;
-				for (BTConnectedDeviceAdapter deviceInterface : btManager.getConnectedDevices()) {
+				InputStream is;
+				BTConnectedDeviceAdapter deviceInterface;
+				for (int i = 0; i < btManager.getConnectedDevices().size; i++) {
 					try {
-						System.out.println("reading from " + deviceInterface + "...");
-						count = deviceInterface.getInputStream().read(buffer);
-						System.out.println("read [" + count + "] bytes");
-						if (count > 0) {
-							ByteArray byteArray = new ByteArray(buffer);
-							byteArray.shrink();
-							//noinspection unchecked
-							publishProgress(new Packet<>(deviceInterface, byteArray));
+						deviceInterface = btManager.getConnectedDevices().get(i);
+						is = deviceInterface.getInputStream();
+						if (is.available() > 0) { // check first if there's stuff to read. can't call read() itself since its a blocking call and will hold up reading the next device
+							System.out.println("reading from " + deviceInterface.getName() + "...");
+							byte[] buffer = new byte[1024];
+							int count = is.read(buffer);
+							System.out.println("read [" + count + "] bytes");
+							if (count > 0) {
+								// Read byte array length, then read [size] bytes from buffer into new byte array
+								for (int bytesStart = 0, bytesLength; bytesStart < count; bytesStart += bytesLength) {
+									bytesLength = buffer[bytesStart];
+									bytesStart++;
+									ByteArray byteArray = new ByteArray(true, buffer, bytesStart, bytesLength);
+									//noinspection unchecked
+									publishProgress(new Packet<>(deviceInterface, byteArray));
+								}
+							}
 						}
-					} catch (IOException e) {
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
@@ -105,18 +125,23 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		@SafeVarargs
 		@Override
 		protected final void onProgressUpdate(Packet<BTConnectedDeviceAdapter, ByteArray>... values) {
-			System.out.println("on progress update:");
 			BluetoothListener listener = btManager.getBluetoothListener();
 			if (listener != null)
 				for (Packet<BTConnectedDeviceAdapter, ByteArray> packet : values)
-					btManager.getBluetoothListener().onRead(packet.sender, packet.message.toArray());
+					listener.onRead(packet.sender, packet.message.toArray());
+		}
+
+		@NonNull
+		@Override
+		public String toString() {
+			return "BT Read Looper Task" + " | " + super.toString();
 		}
 	}
 
 	private static final int REQ_MAKE_DISCOVERABLE = 8574;
 
 	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-	private final Array<BTPairedDeviceAdapter> pairedDevices = new Array<>();
+	private final Array<BTPairedDeviceAdapter> foundDevices = new Array<>();
 	private final Array<BTConnectedDeviceAdapter> connectedDevices = new Array<>();
 	private BroadcastReceiver btBroadcastHandle;
 	@Nullable
@@ -140,7 +165,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 			btBroadcastHandle = new BroadcastReceiver() {
 				@Override
 				public void onReceive(Context context, Intent intent) {
-					if (btListener != null && intent != null) {
+					if (intent != null) {
 						final String action = intent.getAction();
 						int prev;
 
@@ -149,21 +174,27 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 								case BluetoothAdapter.ACTION_STATE_CHANGED:
 									prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE, BluetoothAdapter.STATE_OFF);
 									int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, prev);
-									if (state != prev) btListener.onStateChanged(getState(state));
+									if (state != prev) if (btListener != null)
+										btListener.onStateChanged(getState(state));
 									break;
 								case BluetoothAdapter.ACTION_SCAN_MODE_CHANGED:
-									prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_SCAN_MODE, BluetoothAdapter.SCAN_MODE_NONE);
-									int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, prev);
-									if (mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE && prev != mode)
-										btListener.onDiscoverableStateChanged(true);
-									else if (mode != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE && prev == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE)
-										btListener.onDiscoverableStateChanged(false);
+									if (btListener != null) {
+										prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_SCAN_MODE, BluetoothAdapter.SCAN_MODE_NONE);
+										int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, prev);
+										if (mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE && prev != mode)
+											btListener.onDiscoverableStateChanged(true);
+										else if (mode != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE && prev == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE)
+											btListener.onDiscoverableStateChanged(false);
+									}
 									break;
 								case BluetoothAdapter.ACTION_DISCOVERY_STARTED:
-									btListener.onDiscoveryStateChanged(true);
+									foundDevices.clear();
+									if (btListener != null)
+										btListener.onDiscoveryStateChanged(true);
 									break;
 								case BluetoothAdapter.ACTION_DISCOVERY_FINISHED:
-									btListener.onDiscoveryStateChanged(false);
+									if (btListener != null)
+										btListener.onDiscoveryStateChanged(false);
 									break;
 							}
 
@@ -171,16 +202,18 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 							if (device != null) {
 								switch (action) {
 									case BluetoothDevice.ACTION_FOUND:
-										boolean paired = false;
-										for (BTPairedDeviceAdapter pd : pairedDevices)
+										// Register found devices
+										boolean found = false;
+										for (BTPairedDeviceAdapter pd : foundDevices)
 											if (pd.getDevice().equals(device)) {
-												paired = true;
+												found = true;
 												break;
 											}
-										if (!paired) {
+										if (!found) {
 											final BTPairedDeviceAdapter btDeviceInterface = new BTPairedDeviceAdapter(device);
-											pairedDevices.add(btDeviceInterface);
-											btListener.onDiscoverDevice(btDeviceInterface);
+											foundDevices.add(btDeviceInterface);
+											if (btListener != null)
+												btListener.onDiscoverDevice(btDeviceInterface);
 										}
 										break;
 									case BluetoothDevice.ACTION_ACL_CONNECTED:
@@ -190,20 +223,24 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 									case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
 										prev = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.BOND_NONE);
 										int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, prev);
+										System.out.println("bt bond state change: " + prev + "->" + state);
 										break;
 									case BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED:
 									case BluetoothDevice.ACTION_ACL_DISCONNECTED:
 										// Register device disconnections, and close connected sockets.
-										for (int i = pairedDevices.size - 1; i >= 0; i--)
-											if (pairedDevices.get(i).getDevice().equals(device)) {
-												pairedDevices.removeIndex(i);
+										BTConnectedDeviceAdapter connectedDevice;
+										for (int i = connectedDevices.size - 1; i >= 0; i--) {
+											connectedDevice = connectedDevices.get(i);
+											if (connectedDevice.getDevice().equals(device)) {
+												connectedDevices.removeIndex(i);
+												if (btListener != null) {
+													btListener.onDeviceDisconnected(connectedDevice);
+													btListener.onDisconnectedFromDevice(connectedDevice);
+												}
+												connectedDevice.closeConnection();
 												return;
 											}
-										for (int i = connectedDevices.size - 1; i >= 0; i--)
-											if (connectedDevices.get(i).getDevice().equals(device)) {
-												connectedDevices.get(i).closeConnection();
-												return;
-											}
+										}
 										break;
 								}
 							}
@@ -338,7 +375,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		btAdapter.cancelDiscovery();
 		try {
 			BluetoothServerSocket serverSocket = btAdapter.listenUsingRfcommWithServiceRecord(name, uuid);
-			btAcceptTask = new BTAcceptClientsTask(serverSocket, connectedDevices);
+			btAcceptTask = new BTAcceptClientsTask(serverSocket, this);
 			btAcceptTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 			// NOTE: we do not close the server socket, as the accept task just got it and needs it open.
 			// The accept task therefore is now the one in charge of closing the socket after it's done.
@@ -353,7 +390,10 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 	public void writeTo(BTConnectedDeviceAdapter device, byte[] bytes) {
 		if (!bluetoothSupported()) return;
 		try {
-			device.getOutputStream().write(bytes);
+			OutputStream os = device.getOutputStream();
+			// Write bytes length, then write bytes
+			os.write(bytes.length);
+			os.write(bytes);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -391,7 +431,7 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 
 	@Override
 	public Array<BTPairedDeviceAdapter> getPairedDevices() {
-		return pairedDevices;
+		return foundDevices;
 	}
 
 	@Override
@@ -412,5 +452,10 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		btListener = listener;
 		if (listener != null)
 			listener.onStateChanged(getState());
+	}
+
+	@Override
+	public String getName() {
+		return btAdapter.getName();
 	}
 }

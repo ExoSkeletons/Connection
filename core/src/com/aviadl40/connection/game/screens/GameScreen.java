@@ -854,7 +854,10 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		return (byte) pi;
 	}
 
-	protected abstract void makeMove(Move move);
+	protected void makeMove(Move move) {
+		applyMove(move, params.players, getPI(), board, pieces);
+		nextPlayer();
+	}
 
 	void nextPlayer() {
 		currentMove = null;
@@ -913,7 +916,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 								}
 							})
 					));
-				} else
+				} else if (p instanceof LocalPlayer)
 					inputSuspended = false;
 			}
 		}

@@ -22,7 +22,9 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		private static final String
 				DESC_START_DISCOVERY = "Search",
 				DESC_DISCOVERING = "Looking for Host...",
-				DESC_RESTART_DISCOVERY = "Search again";
+				DESC_RESTART_DISCOVERY = "Search again",
+				DESC_FOUND = "Found",
+				DESC_CONNECTED = "Connected";
 
 		final TextButton startDiscovery = new TextButton("", Gui.skin());
 
@@ -80,10 +82,23 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		void addPlayer(Player p) {
+			super.addPlayer(p);
+			// inform host player joined
 			byte[] nameBytes = p.name.getBytes(), bytes = new byte[nameBytes.length + 1];
 			bytes[0] = HostGameScreen.CODE_PLAYER_JOINED;
 			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
-			Connection.btManager.writeTo(hostDevice, bytes); // Request player join from host
+			Connection.btManager.writeTo(hostDevice, bytes);
+		}
+
+		@Override
+		void removePlayer(int pi) {
+			Player p = params.players.get(pi);
+			super.removePlayer(pi);
+			// inform host player left
+			byte[] nameBytes = p.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+			bytes[0] = HostGameScreen.CODE_PLAYER_LEFT;
+			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
+			Connection.btManager.writeTo(hostDevice, bytes);
 		}
 
 		@Override
@@ -108,13 +123,17 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		public void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered) {
+			title.setText(DESC_FOUND + "\n" + deviceDiscovered.getName());
 			Connection.btManager.enableDiscovery(false);
-			deviceDiscovered.connect(Connection.BT_UUID, this); // Attempt to connect to host
+			deviceDiscovered.connect(Connection.BT_UUID, Connection.btManager); // Attempt to connect to host
 		}
 
 		@Override
 		public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
-			if (hostDevice == null) hostDevice = deviceConnectedTo;
+			if (hostDevice == null) {
+				hostDevice = deviceConnectedTo;
+				title.setText(DESC_CONNECTED + " to\n" + hostDevice.getName());
+			}
 		}
 
 		@Override
@@ -139,10 +158,11 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
 			byte opCode = bytes[0];
 
-			if (opCode == HostGameScreen.CODE_LOBBY_WELCOME)
-				addHuman();
-			else if (opCode == HostGameScreen.CODE_PLAYER_JOINED) {
-				// TODO: send/receive color
+			if (opCode == HostGameScreen.CODE_LOBBY_WELCOME) {
+				LocalPlayer p = new LocalPlayer();
+				p.name = Connection.btManager.getName();
+				addPlayer(p);
+			} else if (opCode == HostGameScreen.CODE_PLAYER_JOINED) {
 				byte[] stringBytes = new byte[bytes.length - 1];
 				System.arraycopy(bytes, 1, stringBytes, 0, stringBytes.length);
 				super.addPlayer(new BTPlayer(new String(stringBytes), null));
@@ -171,13 +191,6 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 	protected void makeMove(Move move) {
 		// Send move request to host
 		Connection.btManager.writeTo(hostInterface, new byte[]{HostGameScreen.CODE_MADE_MOVE, getPI(), move.x, move.y, move.i});
-		// TODO: disable UI to stop player from spamming this until host responds
-	}
-
-	@Override
-	protected void onQuit() {
-		// Send disconnect to host
-		Connection.btManager.writeTo(hostInterface, new byte[]{HostGameScreen.CODE_PLAYER_LEFT});
 	}
 
 	@Override
@@ -216,13 +229,12 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 	public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
 		byte opCode = bytes[0];
 
-		if (opCode == HostGameScreen.CODE_GAME_CLOSED) ; //TODO: show msg, stop game
+		if (opCode == HostGameScreen.CODE_GAME_CLOSED)
+			ScreenManager.setScreen(prev); //TODO: show msg
 		else if (opCode == HostGameScreen.CODE_GAME_RESTARTED) restart();
-		else if (opCode == HostGameScreen.CODE_PLAYER_LEFT) removePlayer(bytes[1]);
-		else if (opCode == HostGameScreen.CODE_MADE_MOVE) {
-			applyMove(new Move(bytes[1], bytes[2], bytes[3]), params.players, getPI(), board, pieces);
-			nextPlayer();
-		}
+		else if (opCode == HostGameScreen.CODE_PLAYER_LEFT) super.removePlayer(bytes[1]);
+		else if (opCode == HostGameScreen.CODE_MADE_MOVE)
+			super.makeMove(new Move(bytes[1], bytes[2], bytes[3]));
 	}
 
 	@Override
@@ -233,5 +245,11 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 	public void show() {
 		super.show();
 		Connection.btManager.setBluetoothListener(this);
+	}
+
+	@Override
+	protected void onQuit() {
+		hostInterface.closeConnection();
+		ScreenManager.setScreen(new ClientBluetoothSetupScreen(prev.prev));
 	}
 }

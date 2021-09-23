@@ -27,7 +27,7 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 	}
 
 	interface BluetoothPairedDeviceInterface {
-		Closeable connect(UUID verificationUUID, BluetoothListener listener);
+		Closeable connect(UUID verificationUUID, BluetoothManager<? extends BluetoothPairedDeviceInterface, BluetoothConnectedDeviceInterface> btManager);
 
 		String getName();
 	}
@@ -80,4 +80,6 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 	BluetoothListener getBluetoothListener();
 
 	void setBluetoothListener(@Nullable BluetoothListener listener);
+
+	String getName();
 }

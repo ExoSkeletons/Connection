@@ -118,8 +118,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					params.size++;
 					if (Connection.btManager.getState() != BluetoothState.OFF) {
 						byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
-						for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-							Connection.btManager.writeTo(connectedDevice, bytes);
+						for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+							Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
 					}
 				}
 			});
@@ -129,8 +129,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					params.size--;
 					if (Connection.btManager.getState() != BluetoothState.OFF) {
 						byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
-						for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-							Connection.btManager.writeTo(connectedDevice, bytes);
+						for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+							Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
 					}
 				}
 			});
@@ -144,8 +144,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
 					if (errorLevel < 3 || Settings.moreInfo) {
-						for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-							Connection.btManager.writeTo(connectedDevice, new byte[]{CODE_GAME_STARTED});
+						for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+							Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), new byte[]{CODE_GAME_STARTED});
 						startGame();
 					}
 				}
@@ -205,13 +205,28 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		}
 
 		@Override
-		void addPlayer(Player player) {
-			byte[] nameBytes = player.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+		void addPlayer(Player btPlayer) {
+			super.addPlayer(btPlayer);
+			byte[] nameBytes = btPlayer.name.getBytes(), bytes = new byte[nameBytes.length + 1];
 			bytes[0] = CODE_PLAYER_JOINED;
 			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
-			for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-				Connection.btManager.writeTo(connectedDevice, bytes);
-			super.addPlayer(player);
+			for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+				Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+		}
+
+		void addPlayer(BTPlayer btPlayer) {
+			super.addPlayer(btPlayer);
+			byte[] nameBytes = btPlayer.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+			bytes[0] = CODE_PLAYER_JOINED;
+			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
+			BluetoothConnectedDeviceInterface device;
+			for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++) {
+				device = Connection.btManager.getConnectedDevices().get(i);
+				// Don't send player join to the device that asked it
+				// to avoid duplicated players
+				if (btPlayer.deviceInterface.equals(device)) continue;
+				Connection.btManager.writeTo(device, bytes);
+			}
 		}
 
 		@Override
@@ -222,8 +237,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		@Override
 		void removePlayer(int pi) {
 			byte[] bytes = {CODE_PLAYER_LEFT, (byte) pi};
-			for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-				Connection.btManager.writeTo(connectedDevice, bytes);
+			for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+				Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
 			super.removePlayer(pi);
 		}
 
@@ -355,20 +370,19 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 	@Override
 	protected void makeMove(Move move) {
-		applyMove(move, params.players, getPI(), board, pieces);
 		// Send move to players
 		byte[] bytes = {CODE_MADE_MOVE, move.x, move.y, move.i};
-		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-			Connection.btManager.writeTo(connectedDevice, bytes);
-		nextPlayer();
+		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+		super.makeMove(move);
 	}
 
 	@Override
 	void restart() {
 		// Send restart to players
 		byte[] bytes = {CODE_GAME_RESTARTED};
-		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-			Connection.btManager.writeTo(connectedDevice, bytes);
+		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
 		super.restart();
 	}
 
@@ -376,8 +390,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void removePlayer(byte pi) {
 		// Send player leave to players
 		byte[] bytes = {CODE_PLAYER_LEFT, pi};
-		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-			Connection.btManager.writeTo(connectedDevice, bytes);
+		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
 		super.removePlayer(pi);
 	}
 
@@ -400,8 +414,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void onQuit() {
 		// Send quit to players
 		byte[] bytes = {CODE_GAME_CLOSED};
-		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
-			Connection.btManager.writeTo(connectedDevice, bytes);
+		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
+			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
 		// Keep connection, for setup menu
 	}
 
