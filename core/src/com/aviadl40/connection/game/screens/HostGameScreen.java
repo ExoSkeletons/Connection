@@ -118,9 +118,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					params.size++;
 					if (Connection.btManager.getState() != BluetoothState.OFF) {
 						byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
-						for (Player p : params.players)
-							if (p instanceof BTPlayer)
-								Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
+						for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+							Connection.btManager.writeTo(connectedDevice, bytes);
 					}
 				}
 			});
@@ -130,9 +129,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					params.size--;
 					if (Connection.btManager.getState() != BluetoothState.OFF) {
 						byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
-						for (Player p : params.players)
-							if (p instanceof BTPlayer)
-								Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
+						for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+							Connection.btManager.writeTo(connectedDevice, bytes);
 					}
 				}
 			});
@@ -146,9 +144,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
 					if (errorLevel < 3 || Settings.moreInfo) {
-						for (Player p : params.players)
-							if (p instanceof BTPlayer)
-								Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, new byte[]{CODE_GAME_STARTED});
+						for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+							Connection.btManager.writeTo(connectedDevice, new byte[]{CODE_GAME_STARTED});
 						startGame();
 					}
 				}
@@ -209,13 +206,11 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 		@Override
 		void addPlayer(Player player) {
-			for (Player p : params.players)
-				if (p instanceof BTPlayer) {
-					byte[] nameBytes = player.name.getBytes(), bytes = new byte[nameBytes.length + 1];
-					bytes[0] = CODE_PLAYER_JOINED;
-					System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
-					Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
-				}
+			byte[] nameBytes = player.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+			bytes[0] = CODE_PLAYER_JOINED;
+			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
+			for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+				Connection.btManager.writeTo(connectedDevice, bytes);
 			super.addPlayer(player);
 		}
 
@@ -227,9 +222,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		@Override
 		void removePlayer(int pi) {
 			byte[] bytes = {CODE_PLAYER_LEFT, (byte) pi};
-			for (Player p : params.players)
-				if (p instanceof BTPlayer)
-					Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
+			for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+				Connection.btManager.writeTo(connectedDevice, bytes);
 			super.removePlayer(pi);
 		}
 
@@ -306,9 +300,9 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 		@Override
 		public void onDeviceDisconnected(BluetoothConnectedDeviceInterface deviceDisconnected) {
-			for (int i = params.players.size - 1; i >= 0; i--)
-				if (params.players.get(i) instanceof BTPlayer && ((BTPlayer) params.players.get(i)).deviceInterface.equals(deviceDisconnected))
-					params.players.removeIndex(i);
+			for (int pi = params.players.size - 1; pi >= 0; pi--)
+				if (params.players.get(pi) instanceof BTPlayer && ((BTPlayer) params.players.get(pi)).deviceInterface.equals(deviceDisconnected))
+					removePlayer(pi);
 		}
 
 		@Override
@@ -364,9 +358,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		applyMove(move, params.players, getPI(), board, pieces);
 		// Send move to players
 		byte[] bytes = {CODE_MADE_MOVE, move.x, move.y, move.i};
-		for (Player p : params.players)
-			if (p instanceof BTPlayer)
-				Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
+		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(connectedDevice, bytes);
 		nextPlayer();
 	}
 
@@ -374,9 +367,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	void restart() {
 		// Send restart to players
 		byte[] bytes = {CODE_GAME_RESTARTED};
-		for (Player p : params.players)
-			if (p instanceof BTPlayer)
-				Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
+		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(connectedDevice, bytes);
 		super.restart();
 	}
 
@@ -384,9 +376,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void removePlayer(byte pi) {
 		// Send player leave to players
 		byte[] bytes = {CODE_PLAYER_LEFT, pi};
-		for (Player p : params.players)
-			if (p instanceof BTPlayer)
-				Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes);
+		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(connectedDevice, bytes);
 		super.removePlayer(pi);
 	}
 
@@ -409,9 +400,9 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void onQuit() {
 		// Send quit to players
 		byte[] bytes = {CODE_GAME_CLOSED};
-		for (Player p : params.players)
-			if (p instanceof BTPlayer)
-				Connection.btManager.writeTo(((BTPlayer) p).deviceInterface, bytes); // Keep connection, for setup menu
+		for (BluetoothConnectedDeviceInterface connectedDevice : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(connectedDevice, bytes);
+		// Keep connection, for setup menu
 	}
 
 	@Override
