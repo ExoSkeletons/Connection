@@ -288,7 +288,6 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 											if (d.getDevice().equals(device)) {
 												connectedDevicesAccessLock.lock();
 												connectedDevices.removeIndex(i);
-												d.closeConnection();
 												connectedDevicesAccessLock.unlock();
 												if (btListener != null) {
 													final BTConnectedDeviceAdapter disconnected = d;
@@ -297,9 +296,14 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 														public void run() {
 															btListener.onDeviceDisconnected(disconnected);
 															btListener.onDisconnectedFromDevice(disconnected);
+															// Closing the connection has to be called last, since
+															// we can't access device after closing.
+															disconnected.closeConnection();
 														}
 													});
-												}
+												} else
+													// If there's no listener to fire, we can just close the connection from here.
+													d.closeConnection();
 												return;
 											}
 										}
