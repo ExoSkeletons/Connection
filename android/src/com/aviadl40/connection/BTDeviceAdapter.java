@@ -17,9 +17,10 @@ import java.util.UUID;
 
 abstract class BTDeviceAdapter {
 	public static final class BTConnectedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothConnectedDeviceInterface {
+		@Nullable
 		private BluetoothSocket socket;
 
-		BTConnectedDeviceAdapter(BluetoothSocket socket) {
+		BTConnectedDeviceAdapter(@Nullable BluetoothSocket socket) {
 			this.socket = socket;
 		}
 
@@ -37,13 +38,15 @@ abstract class BTDeviceAdapter {
 
 		@NonNull
 		InputStream getInputStream() throws IOException {
-			if (socket == null) throw new IOException("Socket not opened.");
+			if (socket == null) throw new IOException("socket closed.");
+			if (!socket.isConnected()) throw new IOException("socket disconnected.");
 			return socket.getInputStream();
 		}
 
 		@NonNull
 		OutputStream getOutputStream() throws IOException {
-			if (socket == null) throw new IOException("Socket not opened.");
+			if (socket == null) throw new IOException("socket closed.");
+			if (!socket.isConnected()) throw new IOException("socket disconnected.");
 			return socket.getOutputStream();
 		}
 

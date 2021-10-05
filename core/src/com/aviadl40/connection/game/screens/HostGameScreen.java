@@ -24,11 +24,20 @@ import com.badlogic.gdx.utils.Align;
 
 public final class HostGameScreen extends GameScreen implements BluetoothManager.BluetoothListener {
 	public static final class HostSetupScreen extends SetupScreen<HostGameScreen> implements BluetoothManager.BluetoothListener {
+		private static final int BT_DISCOVERABLE_DURATION = 60 * 5;
 		private static final String
 				WARN = "are you sure this is what you want?",
 				TOO_MANY_PLAYERS = "too many players",
 				VICTORY_IMPOSSIBLE = "victory is impossible";
-		private final TextButton toggleBTHost = new TextButton("", Gui.skin());
+
+		final TextButton
+				sizeUp = new TextButton("+", Gui.skin()),
+				sizeDown = new TextButton("-", Gui.skin());
+
+		private final TextButton
+				toggleBT = new TextButton("", Gui.skin()),
+				toggleBTHost = new TextButton("", Gui.skin());
+
 		byte errorLevel = 0;
 
 		public HostSetupScreen(ScreenManager.UIScreen prev) {
@@ -47,7 +56,6 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			// Title
 			title.setText("Set up game");
 			title.pack();
-			title.setAlignment(Align.center);
 
 			// Players
 			final Table addPlayers = new Table(Gui.skin());
@@ -56,7 +64,7 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			addHuman.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
-					addHuman();
+					addPlayer();
 				}
 			});
 			final TextButton addBot = new TextButton("Add Bot", Gui.skin());
@@ -70,28 +78,42 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			addPlayers.add(addHuman).fill().growX().minWidth(Gui.buttonSizeSmall()).padRight(Gui.sparsity() / 2);
 			addPlayers.add(addBot).fill().growX().minWidth(Gui.buttonSizeSmall()).padLeft(Gui.sparsity() / 2);
 			// Add initial Human
-			addHuman();
+			addPlayer();
 
 			// Host
 			Table hostTable = new Table();
 			hostTable.add(new Label("Host game", Gui.skin())).row();
 			if (Connection.btManager.bluetoothSupported()) {
-				Table btHostTable = new Table();
+				Table btTable = new Table(), btActionsTable = new Table();
 				final Label hostLabel = new Label("Bluetooth", Gui.instance().labelStyles.subTextStyle);
-				hostLabel.setAlignment(Align.center);
+
+				toggleBT.getLabel().setStyle(new Label.LabelStyle(hostLabel.getStyle()));
+				toggleBT.addListener(new ClickListener() {
+					@Override
+					public void clicked(InputEvent event, float x, float y) {
+						if (!toggleBT.isDisabled())
+							Connection.btManager.requestEnable(toggleBT.isChecked());
+					}
+				});
+
 				toggleBTHost.getLabel().setStyle(new Label.LabelStyle(hostLabel.getStyle()));
+				toggleBTHost.getStyle().disabledFontColor = toggleBTHost.getStyle().fontColor.cpy().mul(1, 1, 1, .5f);
 				toggleBTHost.addListener(new ClickListener() {
 					@Override
 					public void clicked(InputEvent event, float x, float y) {
 						if (!toggleBTHost.isDisabled())
-							Connection.btManager.requestEnable(toggleBTHost.isChecked());
+							Connection.btManager.requestMakeDiscoverable(BT_DISCOVERABLE_DURATION);
 					}
 				});
+				onDiscoverableStateChanged(false);
 
-				btHostTable.add(hostLabel).growX().padRight(Gui.sparsity());
-				btHostTable.add(toggleBTHost).growX().row();
-				hostTable.add(btHostTable).growX().row();
-			} else {
+				btTable.add(hostLabel).left().growX().padRight(Gui.sparsity());
+				btTable.add(btActionsTable);
+				btActionsTable.add(toggleBT).right().row();
+				btActionsTable.add(toggleBTHost).right();
+
+				hostTable.add(btTable).growX().row();
+			} else if (Settings.moreInfo) {
 				Label ns = new Label("Bluetooth is not supported on this device.", Gui.instance().labelStyles.subTextStyle);
 				ns.setWrap(true);
 				ns.setAlignment(Align.center);
@@ -100,42 +122,19 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			}
 
 			// Size
-			final Table sizeTools = new Table(Gui.skin());
-			final TextButton sizeUp = new TextButton("+", Gui.skin()), sizeDown = new TextButton("-", Gui.skin());
-			final Label sizeLabel = new Label("", Gui.skin()) {
-				@Override
-				public void act(float delta) {
-					super.act(delta);
-					setText("Board size: " + params.size);
-					pack();
-					sizeUp.setVisible(params.size + 1 <= GameParameters.MAX_SIZE);
-					sizeDown.setVisible(params.size - 1 >= (Settings.DEV_MODE ? 1 : 3));
-				}
-			};
 			sizeUp.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
-					params.size++;
-					if (Connection.btManager.getState() != BluetoothState.OFF) {
-						byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
-						for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-							Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
-					}
+					changeBoardSize((byte) (params.size + 1));
 				}
 			});
 			sizeDown.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
-					params.size--;
-					if (Connection.btManager.getState() != BluetoothState.OFF) {
-						byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
-						for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-							Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
-					}
+					changeBoardSize((byte) (params.size - 1));
 				}
 			});
-			sizeTools.add(sizeLabel).padRight(Gui.sparsity());
-			sizeTools.add(sizeDown).minWidth(Gui.buttonSizeSmall());
+			sizeTools.add(sizeDown).padLeft(Gui.sparsity()).minWidth(Gui.buttonSizeSmall());
 			sizeTools.add(sizeUp).minWidth(Gui.buttonSizeSmall());
 
 			// Start
@@ -144,8 +143,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
 					if (errorLevel < 3 || Settings.moreInfo) {
-						for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-							Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), new byte[]{CODE_GAME_STARTED});
+						for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
+							Connection.btManager.writeTo(d, new byte[]{CODE_GAME_STARTED});
 						startGame();
 					}
 				}
@@ -196,37 +195,25 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			messageLabel.setTouchable(Touchable.disabled);
 
 
-			tools.add(addPlayers).fill().spaceBottom(Gui.sparsity() * 2).row();
+			playerTools.add(addPlayers).fill().spaceBottom(Gui.sparsityBig()).row();
 			if (Settings.BT_READY || Settings.DEV_MODE)
-				tools.add(hostTable).fill().growX().spaceBottom(Gui.sparsity() * 2).row();
-			tools.add(sizeTools).spaceBottom(Gui.sparsity()).row();
-			tools.add(messageLabel).grow().spaceBottom(Gui.sparsity() * 2).row();
+				tools.add(hostTable).fill().growX().spaceTop(Gui.sparsityBig()).spaceBottom(Gui.sparsityBig()).row();
+			tools.add(messageLabel).grow().spaceTop(Gui.sparsity()).spaceBottom(Gui.sparsityBig()).row();
 			tools.add(startGame).fill();
 		}
 
-		@Override
-		void addPlayer(Player btPlayer) {
-			super.addPlayer(btPlayer);
-			byte[] nameBytes = btPlayer.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+		void addPlayer(Player p) {
+			byte[] nameBytes = p.name.getBytes(), colorBytes = p.color.toString().getBytes(), bytes = new byte[nameBytes.length + colorBytes.length + 1];
 			bytes[0] = CODE_PLAYER_JOINED;
-			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
-			for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-				Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
-		}
-
-		void addPlayer(BTPlayer btPlayer) {
-			super.addPlayer(btPlayer);
-			byte[] nameBytes = btPlayer.name.getBytes(), bytes = new byte[nameBytes.length + 1];
-			bytes[0] = CODE_PLAYER_JOINED;
-			System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
-			BluetoothConnectedDeviceInterface device;
-			for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++) {
-				device = Connection.btManager.getConnectedDevices().get(i);
+			System.arraycopy(colorBytes, 0, bytes, 1, colorBytes.length);
+			System.arraycopy(nameBytes, 0, bytes, 1 + colorBytes.length, nameBytes.length);
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices()) {
 				// Don't send player join to the device that asked it
 				// to avoid duplicated players
-				if (btPlayer.deviceInterface.equals(device)) continue;
-				Connection.btManager.writeTo(device, bytes);
+				if (p instanceof BTPlayer && ((BTPlayer) p).deviceInterface.equals(d)) continue;
+				Connection.btManager.writeTo(d, bytes);
 			}
+			super.addPlayer(p);
 		}
 
 		@Override
@@ -237,9 +224,50 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		@Override
 		void removePlayer(int pi) {
 			byte[] bytes = {CODE_PLAYER_LEFT, (byte) pi};
-			for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-				Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+			for (BluetoothConnectedDeviceInterface deviceInterface : Connection.btManager.getConnectedDevices())
+				Connection.btManager.writeTo(deviceInterface, bytes);
 			super.removePlayer(pi);
+		}
+
+		@Override
+		void changePlayerName(byte pi, String newName) {
+			Player p = params.players.get(pi);
+			byte[] nameBytes = newName.getBytes(), bytes = new byte[nameBytes.length + 2];
+			bytes[0] = CODE_PLAYER_CHANGED_NAME;
+			bytes[1] = pi;
+			System.arraycopy(nameBytes, 0, bytes, 2, nameBytes.length);
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices()) {
+				// Don't send player join to the device that asked it
+				// to avoid duplicated players
+				if (p instanceof BTPlayer && ((BTPlayer) p).deviceInterface.equals(d)) continue;
+				Connection.btManager.writeTo(d, bytes);
+			}
+			super.changePlayerName(pi, newName);
+		}
+
+		@Override
+		void changePlayerColor(byte pi, Color newColor) {
+			Player p = params.players.get(pi);
+			byte[] hexBytes = newColor.toString().getBytes(), bytes = new byte[hexBytes.length + 2];
+			bytes[0] = CODE_PLAYER_CHANGED_COLOR;
+			bytes[1] = pi;
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices()) {
+				// Don't send player join to the device that asked it
+				// to avoid duplicated players
+				if (p instanceof BTPlayer && ((BTPlayer) p).deviceInterface.equals(d)) continue;
+				Connection.btManager.writeTo(d, bytes);
+			}
+			super.changePlayerColor(pi, newColor);
+		}
+
+		@Override
+		void changeBoardSize(byte newSize) {
+			super.changeBoardSize(newSize);
+			sizeUp.setVisible(params.size + 1 <= GameParameters.MAX_SIZE);
+			sizeDown.setVisible(params.size - 1 >= (Settings.DEV_MODE ? 1 : 3));
+			byte[] bytes = {CODE_BOARD_CHANGED_SIZE, params.size};
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
+				Connection.btManager.writeTo(d, bytes);
 		}
 
 		@Override
@@ -257,34 +285,36 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		@Override
 		public void onStateChanged(BluetoothState state) {
 			if (state == BluetoothState.ON)
-				Connection.btManager.requestMakeDiscoverable(300);
+				Connection.btManager.requestMakeDiscoverable(BT_DISCOVERABLE_DURATION);
+			toggleBTHost.setDisabled(state != BluetoothState.ON);
 
-			CharSequence text = toggleBTHost.getText();
+			CharSequence text = toggleBT.getText();
 			switch (state) {
 				case ON:
 					text = "turn off";
-					toggleBTHost.setChecked(true);
+					toggleBT.setChecked(true);
 					break;
 				case OFF:
-					text = "turn on ";
-					toggleBTHost.setChecked(false);
+					text = "turn on";
+					toggleBT.setChecked(false);
 					break;
 				case TURNING_ON:
 				case TURNING_OFF:
 					text = "  . . . . .   ";
 					break;
 			}
-			toggleBTHost.getLabel().setColor(state == BluetoothState.ON ? Color.GOLD : Color.WHITE);
-			toggleBTHost.setText(text.toString());
-			toggleBTHost.setDisabled(state == BluetoothState.TURNING_ON || state == BluetoothState.TURNING_OFF);
+			toggleBT.getLabel().setColor(state == BluetoothState.ON ? Color.GOLD : Color.WHITE);
+			toggleBT.setText(text.toString());
+			toggleBT.setDisabled(state == BluetoothState.TURNING_ON || state == BluetoothState.TURNING_OFF);
 		}
 
 		@Override
 		public void onDiscoverableStateChanged(boolean discoverable) {
 			if (discoverable)
 				Connection.btManager.host("Test?..", Connection.BT_UUID);
-			else
-				Connection.btManager.requestEnable(false);
+			toggleBTHost.setDisabled(discoverable || !Connection.btManager.isEnabled());
+			toggleBTHost.setText(discoverable ? "Visible" : "Make Visible");
+			toggleBTHost.getLabel().setColor(discoverable ? Color.GOLD : Color.WHITE);
 		}
 
 		@Override
@@ -303,9 +333,10 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		public void onDeviceConnected(BluetoothConnectedDeviceInterface deviceConnected) {
 			// Inform device of lobby state
 			for (Player p : params.players) {
-				byte[] nameBytes = p.name.getBytes(), bytes = new byte[nameBytes.length + 1];
+				byte[] nameBytes = p.name.getBytes(), colorBytes = p.color.toString().getBytes(), bytes = new byte[nameBytes.length + colorBytes.length + 1];
 				bytes[0] = CODE_PLAYER_JOINED;
-				System.arraycopy(nameBytes, 0, bytes, 1, nameBytes.length);
+				System.arraycopy(colorBytes, 0, bytes, 1, colorBytes.length);
+				System.arraycopy(nameBytes, 0, bytes, 1 + colorBytes.length, nameBytes.length);
 				Connection.btManager.writeTo(deviceConnected, bytes);
 			}
 			Connection.btManager.writeTo(deviceConnected, new byte[]{HostGameScreen.CODE_BOARD_CHANGED_SIZE, params.size});
@@ -324,10 +355,24 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
 			byte opCode = bytes[0];
 
-			if (opCode == CODE_PLAYER_JOINED)
-				addPlayer(new BTPlayer(new String(bytes), from));
-			else if (opCode == CODE_PLAYER_LEFT)
+			if (opCode == CODE_PLAYER_JOINED) {
+				byte[] colorBytes = new byte[8], nameBytes = new byte[bytes.length - 1 - colorBytes.length];
+				System.arraycopy(bytes, 1, colorBytes, 0, colorBytes.length);
+				System.arraycopy(bytes, 1 + colorBytes.length, nameBytes, 0, nameBytes.length);
+				Player p = new BTPlayer(new String(nameBytes), from);
+				p.color = Color.valueOf(new String(colorBytes));
+				addPlayer(p);
+			} else if (opCode == CODE_PLAYER_LEFT)
 				removePlayer(bytes[1]);
+			else if (opCode == CODE_PLAYER_CHANGED_NAME) {
+				byte[] nameBytes = new byte[bytes.length - 2];
+				System.arraycopy(bytes, 2, nameBytes, 0, nameBytes.length);
+				changePlayerName(bytes[1], new String(nameBytes));
+			} else if (opCode == CODE_PLAYER_CHANGED_COLOR) {
+				byte[] hexBytes = new byte[bytes.length - 1];
+				System.arraycopy(bytes, 2, hexBytes, 0, hexBytes.length);
+				changePlayerColor(bytes[1], Color.valueOf(new String(hexBytes)));
+			}
 		}
 
 		@Override
@@ -372,8 +417,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void makeMove(Move move) {
 		// Send move to players
 		byte[] bytes = {CODE_MADE_MOVE, move.x, move.y, move.i};
-		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+		for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(d, bytes);
 		super.makeMove(move);
 	}
 
@@ -381,8 +426,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	void restart() {
 		// Send restart to players
 		byte[] bytes = {CODE_GAME_RESTARTED};
-		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+		for (BluetoothConnectedDeviceInterface deviceInterface : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(deviceInterface, bytes);
 		super.restart();
 	}
 
@@ -390,8 +435,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void removePlayer(byte pi) {
 		// Send player leave to players
 		byte[] bytes = {CODE_PLAYER_LEFT, pi};
-		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+		for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(d, bytes);
 		super.removePlayer(pi);
 	}
 
@@ -414,8 +459,8 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	protected void onQuit() {
 		// Send quit to players
 		byte[] bytes = {CODE_GAME_CLOSED};
-		for (int i = 0; i < Connection.btManager.getConnectedDevices().size; i++)
-			Connection.btManager.writeTo(Connection.btManager.getConnectedDevices().get(i), bytes);
+		for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
+			Connection.btManager.writeTo(d, bytes);
 		// Keep connection, for setup menu
 	}
 
@@ -464,7 +509,6 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					makeMove(move); // Move ok, send it out
 			}
 		} else if (opCode == CODE_PLAYER_LEFT)
-			/*from.closeConnection();*/
 			removePlayer(bytes[1]);
 	}
 

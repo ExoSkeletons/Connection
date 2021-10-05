@@ -150,6 +150,10 @@ public final class Gui implements Disposable {
 		SR = new ShapeRenderer();
 	}
 
+	public static float sparsityBig() {
+		return sparsity()*2;
+	}
+
 	public ButtonStyles buttonStyles;
 	public LabelStyles labelStyles;
 	private Skin skin;

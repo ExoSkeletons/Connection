@@ -115,11 +115,12 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		}
 
 		static final class PlayerTextFieldListener implements TextField.TextFieldListener {
-			@NonNull
-			private final Player p;
+			private final byte pi;
+			private final SetupScreen setup;
 
-			PlayerTextFieldListener(@NonNull Player p) {
-				this.p = p;
+			PlayerTextFieldListener(byte pi, SetupScreen setup) {
+				this.pi = pi;
+				this.setup = setup;
 			}
 
 			@Override
@@ -129,8 +130,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 						textField.getOnscreenKeyboard().show(false);
 						textField.getStage().setKeyboardFocus(null);
 					}
-				} else
-					p.name = textField.getText();
+					setup.changePlayerName(pi, textField.getText());
+				}
 			}
 		}
 
@@ -446,19 +447,22 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	static abstract class SetupScreen<G extends GameScreen> extends ScreenManager.UIScreen {
 		@NonNull
 		final GameParameters params = new GameParameters();
+		final Table sizeTools = new Table(Gui.skin());
 		final Label title = new Label("", Gui.instance().labelStyles.titleTextStyle);
-		final Table playerTable = new Table(Gui.skin());
-		final ScrollPane playerListScroll = new ScrollPane(playerTable);
-		final Table tools = new Table(Gui.skin()) {
+		final Table tools = new Table(Gui.skin());
+		private final Table playerListTable = new Table(Gui.skin());
+		private final ScrollPane playerListScroll = new ScrollPane(playerListTable);
+		final Table playerTools = new Table(Gui.skin()) {
 			@Override
 			public void act(float delta) {
-				playerTable.setHeight(playerTable.getPrefHeight());
-				playerListScroll.setHeight(Math.min(playerTable.getHeight(), Gdx.graphics.getHeight() * .2f));
+				playerListTable.setHeight(playerListTable.getPrefHeight());
+				playerListScroll.setHeight(Math.min(playerListTable.getHeight(), Gdx.graphics.getHeight() * .2f));
 				getCell(playerListScroll).height(playerListScroll.getHeight());
-				playerTable.invalidateHierarchy();
+				playerListTable.invalidateHierarchy();
 				super.act(delta);
 			}
 		};
+		private final Label sizeLabel = new Label("", Gui.skin());
 
 		SetupScreen(ScreenManager.UIScreen prev) {
 			super(prev);
@@ -474,47 +478,47 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			}
 		}
 
-		final void updatePlayerTable() {
-			playerTable.clearChildren();
+		final void updatePlayerList() {
+			playerListTable.clearChildren();
 			Player p;
-			for (int i = 0; i < params.players.size; i++) {
+			for (int pi = 0; pi < params.players.size; pi++) {
 				final Actor a;
-				p = params.players.get(i);
+				p = params.players.get(pi);
 				if (p instanceof LocalPlayer) {
 					a = new Player.PlayerNameTextField(p.name, Gui.skin());
-					((TextField) a).setTextFieldListener(new Player.PlayerTextFieldListener(p));
+					((TextField) a).setTextFieldListener(new Player.PlayerTextFieldListener((byte) pi, this));
 					((TextField) a).setMaxLength(20);
 					((TextField) a).setOnlyFontChars(true);
 					((TextField) a).setFocusTraversal(false);
 				} else
 					a = new Label(p.name, Gui.skin());
 				a.setColor(p.color);
-				playerTable.add(a).growX();
-				Cell c = playerTable.add().fill();
+				playerListTable.add(a).growX();
+				Cell c = playerListTable.add().fill();
 				if (canRemovePlayer(p)) {
 					final TextButton removePlayer = new TextButton("-", Gui.skin());
-					final int pi = i;
+					final int pi_ = pi;
 					removePlayer.addListener(new ClickListener() {
 						@Override
 						public void clicked(InputEvent event, float x, float y) {
-							removePlayer(pi);
+							removePlayer(pi_);
 						}
 					});
 					c.setActor(removePlayer).minWidth((Gui.buttonSizeSmall())).row();
 				}
-				playerTable.row();
+				playerListTable.row();
 			}
 		}
 
 		void addPlayer(Player p) {
 			if (params.players.size < Byte.MAX_VALUE - 1)
 				params.players.add(p);
-			updatePlayerTable();
+			updatePlayerList();
 			playerListScroll.layout();
 			playerListScroll.scrollTo(0, 0, 0, 0);
 		}
 
-		final void addHuman() {
+		final void addPlayer() {
 			Human h = new LocalPlayer();
 			byte num = 1;
 			for (Player p : params.players)
@@ -540,27 +544,55 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 		void removePlayer(int pi) {
 			params.players.removeIndex(pi);
-			updatePlayerTable();
+			updatePlayerList();
+		}
+
+		void changePlayerName(byte pi, String newName) {
+			params.players.get(pi).name = newName;
+			updatePlayerList();
+		}
+
+		void changePlayerColor(byte pi, Color newColor) {
+			params.players.get(pi).color = newColor;
+			updatePlayerList();
+		}
+
+		void changeBoardSize(byte newSize) {
+			params.size = newSize;
+			sizeLabel.setText("Board size: " + params.size);
+			sizeLabel.pack();
 		}
 
 		@Override
 		protected void buildUI() {
 			// Title
 			title.setAlignment(Align.center);
-			tools.add(title).fill().spaceBottom(Gui.sparsity() * 2).row();
+			tools.add(title).fill().spaceBottom(Gui.sparsityBig()).row();
 
 			// Player list
-			tools.add(new Label("Players", Gui.skin())).row();
-			tools.add(playerListScroll).growX().row();
-			updatePlayerTable();
+			playerTools.add(new Label("Players", Gui.skin())).row();
+			playerTools.add(playerListScroll).growX().row();
 			playerListScroll.setScrollingDisabled(true, false);
 			playerListScroll.setOverscroll(false, true);
+			tools.add(playerTools).growX().expandY().spaceBottom(Gui.sparsityBig()).row();
+			updatePlayerList();
 
-			tools.setWidth(Gdx.graphics.getWidth() - Gui.sparsity() * 4);
+			// Size
+			sizeTools.add(sizeLabel);
+			tools.add(sizeTools).growX().row();
+			changeBoardSize(params.size);
+
+			tools.setWidth(Gdx.graphics.getWidth() - Gui.sparsityBig() * 2);
 			Utils.centerXY(tools);
 			tools.center();
 			tools.act(0);
 			ui.addActor(tools);
+		}
+
+		@Override
+		public void show() {
+			super.show();
+			updatePlayerList();
 		}
 	}
 
@@ -769,7 +801,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		return null;
 	}
 
-	static void applyMove(@Nullable final Move move, final Array<Player> players, final byte pi, final Player[][][] board, final byte[][] pieces) {
+	private static void applyMove(@Nullable final Move move, final Array<Player> players, final byte pi, final Player[][][] board, final byte[][] pieces) {
 		if (move == null)
 			return;
 		board[move.x][move.y][move.i] = players.get(pi);
@@ -855,6 +887,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	}
 
 	protected void makeMove(Move move) {
+		if (!(params.players.get(getPI()) instanceof LocalPlayer))
+			getSelectSound(move.i).play();
 		applyMove(move, params.players, getPI(), board, pieces);
 		nextPlayer();
 	}
@@ -909,10 +943,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 								@Override
 								public void run() {
 									Move move = ((Bot) params.players.get(getPI())).calculateMove(board, params.players, getPI(), pieces);
-									if (move != null) {
-										getSelectSound(move.i).play();
-										makeMove(move);
-									}
+									if (move != null) makeMove(move);
 								}
 							})
 					));

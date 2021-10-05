@@ -62,6 +62,8 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 
 	void requestEnable(boolean enable);
 
+	boolean isEnabled();
+
 	BluetoothState getState();
 
 	Closeable host(String name, UUID uuid);
