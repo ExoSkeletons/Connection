@@ -813,10 +813,10 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	final byte[][] pieces;
 	@NonNull
 	final GameParameters params;
+	private final Table subtitle = new Table();
+	private final Label player = new Label("Player ", Gui.skin()), currentPlayer = new Label("", Gui.skin()), nextPlayer = new Label("", Gui.skin());
+	private final Label action = new Label("", Gui.skin());
 	private int pi = -1;
-	private Table subtitle;
-	private Label player, currentPlayer, nextPlayer;
-	private Label action;
 	private boolean inputSuspended = false;
 	@Nullable
 	private Player winner = null;
@@ -855,13 +855,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	}
 
 	private void start() {
-		ui.addAction(Actions.run(new Runnable() {
-			@Override
-			public void run() {
-				resumeGame();
-				nextPlayer();
-			}
-		}));
+		resumeGame();
+		nextPlayer();
 	}
 
 	private void printBoard() {
@@ -960,11 +955,11 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 	@Override
 	protected void buildUI() {
-		player = new Label("Player ", Gui.skin());
+		player.setStyle(Gui.skin().get(Label.LabelStyle.class));
 		final Label next = new Label("Next: ", Gui.instance().labelStyles.subTextStyle);
-		currentPlayer = new Label("", player.getStyle());
-		action = new Label("", player.getStyle());
-		nextPlayer = new Label("", next.getStyle());
+		currentPlayer.setStyle(player.getStyle());
+		action.setStyle(player.getStyle());
+		nextPlayer.setStyle(player.getStyle());
 		final Table header = new Table(Gui.skin()) {
 			@Override
 			public void act(float delta) {
@@ -974,7 +969,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 				super.act(delta);
 			}
 		}, title = new Table(Gui.skin());
-		subtitle = new Table(Gui.skin());
+		subtitle.setSkin(Gui.skin());
 		title.add(player);
 		title.add(currentPlayer);
 		title.add(action);
