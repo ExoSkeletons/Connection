@@ -21,6 +21,7 @@ import com.aviadl40.connection.BTDeviceAdapter.BTConnectedDeviceAdapter;
 import com.aviadl40.connection.BTDeviceAdapter.BTPairedDeviceAdapter;
 import com.aviadl40.connection.game.managers.BluetoothManager;
 import com.aviadl40.connection.game.managers.PermissionsManager;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.utils.Array;
@@ -65,14 +66,19 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		}
 
 		@Override
-		protected void onProgressUpdate(BTConnectedDeviceAdapter... progress) {
+		protected void onProgressUpdate(final BTConnectedDeviceAdapter... progress) {
 			accessLock.lock();
 			btManager.getConnectedDevices().addAll(progress);
 			accessLock.unlock();
-			BluetoothListener btListener = btManager.getBluetoothListener();
+			final BluetoothListener btListener = btManager.getBluetoothListener();
 			if (btListener != null)
-				for (BTConnectedDeviceAdapter connectedDevice : progress)
-					btListener.onDeviceConnected(connectedDevice);
+				Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						for (BTConnectedDeviceAdapter connectedDevice : progress)
+							btListener.onDeviceConnected(connectedDevice);
+					}
+				});
 		}
 
 		@Override
@@ -139,11 +145,16 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 
 		@SafeVarargs
 		@Override
-		protected final void onProgressUpdate(Packet<BTConnectedDeviceAdapter, ByteArray>... values) {
-			BluetoothListener listener = btManager.getBluetoothListener();
-			if (listener != null)
-				for (Packet<BTConnectedDeviceAdapter, ByteArray> packet : values)
-					listener.onRead(packet.sender, packet.message.toArray());
+		protected final void onProgressUpdate(final Packet<BTConnectedDeviceAdapter, ByteArray>... progress) {
+			final BluetoothListener btListener = btManager.getBluetoothListener();
+			if (btListener != null)
+				Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						for (Packet<BTConnectedDeviceAdapter, ByteArray> packet : progress)
+							btListener.onRead(packet.sender, packet.message.toArray());
+					}
+				});
 		}
 
 		@Override
@@ -189,16 +200,26 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 							switch (action) {
 								case BluetoothAdapter.ACTION_STATE_CHANGED:
 									prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE, BluetoothAdapter.STATE_OFF);
-									int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, prev);
+									final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, prev);
 									if (state != prev) if (btListener != null)
-										btListener.onStateChanged(getState(state));
+										Gdx.app.postRunnable(new Runnable() {
+											@Override
+											public void run() {
+												btListener.onStateChanged(getState(state));
+											}
+										});
 									break;
 								case BluetoothAdapter.ACTION_SCAN_MODE_CHANGED:
 									if (btListener != null) {
 										prev = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_SCAN_MODE, -1);
-										int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, prev);
+										final int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, prev);
 										if (mode != prev)
-											btListener.onDiscoverableStateChanged(mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+											Gdx.app.postRunnable(new Runnable() {
+												@Override
+												public void run() {
+													btListener.onDiscoverableStateChanged(mode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+												}
+											});
 									}
 									break;
 								case BluetoothAdapter.ACTION_DISCOVERY_STARTED:
@@ -206,11 +227,21 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 									foundDevices.clear();
 									foundDevicesAccessLock.unlock();
 									if (btListener != null)
-										btListener.onDiscoveryStateChanged(true);
+										Gdx.app.postRunnable(new Runnable() {
+											@Override
+											public void run() {
+												btListener.onDiscoveryStateChanged(true);
+											}
+										});
 									break;
 								case BluetoothAdapter.ACTION_DISCOVERY_FINISHED:
 									if (btListener != null)
-										btListener.onDiscoveryStateChanged(false);
+										Gdx.app.postRunnable(new Runnable() {
+											@Override
+											public void run() {
+												btListener.onDiscoveryStateChanged(false);
+											}
+										});
 									break;
 							}
 
@@ -231,7 +262,12 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 											foundDevices.add(btDeviceInterface);
 											foundDevicesAccessLock.unlock();
 											if (btListener != null)
-												btListener.onDiscoverDevice(btDeviceInterface);
+												Gdx.app.postRunnable(new Runnable() {
+													@Override
+													public void run() {
+														btListener.onDiscoverDevice(btDeviceInterface);
+													}
+												});
 										}
 										break;
 									case BluetoothDevice.ACTION_ACL_CONNECTED:
@@ -246,18 +282,24 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 									case BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED:
 									case BluetoothDevice.ACTION_ACL_DISCONNECTED:
 										// Register device disconnections, and close connected sockets.
-										BTConnectedDeviceAdapter connectedDevice;
+										BTConnectedDeviceAdapter d;
 										for (int i = connectedDevices.size - 1; i >= 0; i--) {
-											connectedDevice = connectedDevices.get(i);
-											if (connectedDevice.getDevice().equals(device)) {
+											d = connectedDevices.get(i);
+											if (d.getDevice().equals(device)) {
 												connectedDevicesAccessLock.lock();
 												connectedDevices.removeIndex(i);
-												if (btListener != null) {
-													btListener.onDeviceDisconnected(connectedDevice);
-													btListener.onDisconnectedFromDevice(connectedDevice);
-												}
-												connectedDevice.closeConnection();
+												d.closeConnection();
 												connectedDevicesAccessLock.unlock();
+												if (btListener != null) {
+													final BTConnectedDeviceAdapter disconnected = d;
+													Gdx.app.postRunnable(new Runnable() {
+														@Override
+														public void run() {
+															btListener.onDeviceDisconnected(disconnected);
+															btListener.onDisconnectedFromDevice(disconnected);
+														}
+													});
+												}
 												return;
 											}
 										}
@@ -290,7 +332,12 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == REQ_MAKE_DISCOVERABLE) if (resultCode == RESULT_CANCELED)
 			if (btListener != null)
-				btListener.onDiscoverableStateChanged(false);
+				Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						btListener.onDiscoverableStateChanged(false);
+					}
+				});
 
 		super.onActivityResult(requestCode, resultCode, data);
 	}
@@ -361,7 +408,12 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 			requestPermissions(permissions);
 			requestEnable(false);
 			if (btListener != null)
-				btListener.onStateChanged(BluetoothState.OFF);
+				Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						btListener.onStateChanged(BluetoothState.OFF);
+					}
+				});
 			return;
 		}
 		if (btAdapter.isEnabled() == enable) return;
