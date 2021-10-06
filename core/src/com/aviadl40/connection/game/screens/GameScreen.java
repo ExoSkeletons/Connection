@@ -914,6 +914,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			currentPlayer.setText(winner.name);
 			currentPlayer.setColor(winner.color);
 			action.setText(" Wins");
+
+			AudioManager.newSFXGame(p instanceof LocalPlayer ? "win" : "lose").play();
 		} else {
 			pi = (byte) Utils.getNextIndex(params.players.items, getPI());
 			boolean draw = true;
@@ -932,6 +934,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 				player.setText("");
 				currentPlayer.setText("");
 				action.setText("Draw");
+
+				AudioManager.newSFXGame("draw").play();
 			} else {
 				p = params.players.get(getPI());
 				next = params.players.get(Utils.getNextIndex(params.players.items, getPI()));
@@ -942,6 +946,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 				nextPlayer.setColor(next.color);
 				nextPlayer.setText(next.name);
 				subtitle.setVisible(true);
+
+				AudioManager.newSFXGame(p instanceof LocalPlayer ? "next_l" : "next").play();
 
 				if (p instanceof Bot) {
 					ui.addAction(Actions.sequence(
@@ -954,8 +960,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 								}
 							})
 					));
-				} else if (p instanceof LocalPlayer)
-					inputSuspended = false;
+				} else if (p instanceof LocalPlayer) inputSuspended = false;
 			}
 		}
 	}
@@ -1087,7 +1092,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	}
 
 	private AudioManager.SoundAdapter getSelectSound(int i) {
-		AudioManager.SoundAdapter s = AudioManager.newSFXActions("select");
+		AudioManager.SoundAdapter s = AudioManager.newSFXGame("select");
 		s.setPitch(1 - SELECT_PITCH_RANGE / 2 + SELECT_PITCH_RANGE * ((float) i / (params.size - 1)));
 		return s;
 	}
