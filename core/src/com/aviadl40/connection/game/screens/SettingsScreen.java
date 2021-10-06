@@ -67,7 +67,7 @@ public final class SettingsScreen extends ScreenManager.UIScreen {
 
 		final Label
 				title = new Label("Settings", Gui.instance().labelStyles.headerStyle),
-				credits = new Label("Music by Kevin Macleod\nincompetech.com", Gui.instance().labelStyles.subTextStyle);
+				credits = new Label("Music by\nKevin Macleod incompetech.com\nSFX by\nmixkit.co, soundbible.com", Gui.instance().labelStyles.subTextStyle);
 		Utils.centerX(title);
 		title.setY(Gdx.graphics.getHeight() - Gui.sparsity() - title.getHeight());
 
