@@ -73,10 +73,10 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		}
 
 		@Override
-		public boolean back() {
+		public void dispose() {
 			Connection.btManager.enableDiscovery(false);
 			Connection.btManager.requestEnable(false);
-			return super.back();
+			super.dispose();
 		}
 
 		@Override
