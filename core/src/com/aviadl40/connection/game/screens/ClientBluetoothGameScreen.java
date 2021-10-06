@@ -61,7 +61,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 			leaveLobby();
 
-			playerTools.add(startDiscovery).growX().row();
+			tools.add(startDiscovery).growX().row();
 		}
 
 		@Override
@@ -83,11 +83,13 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		void addPlayer(Player p) {
 			super.addPlayer(p);
 			// inform host player joined
-			byte[] nameBytes = p.name.getBytes(), colorBytes = p.color.toString().getBytes(), bytes = new byte[nameBytes.length + colorBytes.length + 1];
-			bytes[0] = HostGameScreen.CODE_PLAYER_JOINED;
-			System.arraycopy(colorBytes, 0, bytes, 1, colorBytes.length);
-			System.arraycopy(nameBytes, 0, bytes, 1 + colorBytes.length, nameBytes.length);
-			Connection.btManager.writeTo(hostInterface, bytes);
+			if (hostInterface != null) {
+				byte[] nameBytes = p.name.getBytes(), colorBytes = p.color.toString().getBytes(), bytes = new byte[nameBytes.length + colorBytes.length + 1];
+				bytes[0] = HostGameScreen.CODE_PLAYER_JOINED;
+				System.arraycopy(colorBytes, 0, bytes, 1, colorBytes.length);
+				System.arraycopy(nameBytes, 0, bytes, 1 + colorBytes.length, nameBytes.length);
+				Connection.btManager.writeTo(hostInterface, bytes);
+			}
 		}
 
 		@Override
@@ -131,6 +133,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 			params.players.clear();
 			updatePlayerList();
 			params.size = 3;
+			playerTools.setVisible(false);
 			sizeTools.setVisible(false);
 			title.setText(TITLE);
 			title.pack();
@@ -191,6 +194,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 				if (opCode == HostGameScreen.CODE_LOBBY_WELCOME) {
 					addPlayer();
+					playerTools.setVisible(true);
 					sizeTools.setVisible(true);
 				} else if (opCode == HostGameScreen.CODE_PLAYER_JOINED) {
 					byte[] colorBytes = new byte[8], nameBytes = new byte[bytes.length - 1 - colorBytes.length];
