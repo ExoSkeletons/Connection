@@ -41,7 +41,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		protected ClientBluetoothGameScreen newGame(@NonNull GameParameters params) {
 			if (hostInterface == null)
 				throw new IllegalArgumentException("Missing game host.");
-			return new ClientBluetoothGameScreen(prev, hostInterface, params);
+			return new ClientBluetoothGameScreen(this, hostInterface, params);
 		}
 
 		@Override
