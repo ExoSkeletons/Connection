@@ -99,7 +99,6 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 
 		@Override
 		protected Void doInBackground(Void... voids) {
-			System.out.println("starting read task.");
 			final Array<BTConnectedDeviceAdapter> connectedDevices = new Array<>();
 			BTConnectedDeviceAdapter deviceInterface;
 			InputStream is;
@@ -111,10 +110,8 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 				for (int i = connectedDevices.size - 1; i >= 0 && !isCancelled(); i--) {
 					try {
 						accessLock.lock();
-						System.out.print(i + " = ");
 						deviceInterface = connectedDevices.get(i);
 						is = deviceInterface.getInputStream();
-						System.out.println(deviceInterface.getName() + " " + is.available());
 						if (is.available() > 0) { // check first if there's stuff to read. can't call read() itself since its a blocking call and will hold up reading the next device
 							System.out.println("reading from " + deviceInterface.getName() + "...");
 							byte[] buffer = new byte[1024];

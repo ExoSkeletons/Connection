@@ -67,7 +67,7 @@ public final class Connection extends Game {
 
 		Utils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.textures.getPath()), Const.Folder.textures.extension, Texture.class);
 		Utils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.sound.getPath()), Const.Folder.sound.extension, Sound.class);
-		ScreenManager.setScreen(new LoadingScreen(assetManager, "Assets") {
+		ScreenManager.setScreen(new LoadingScreen(assetManager, "") {
 			@Override
 			protected void onFinish() {
 				// Build resources
@@ -98,7 +98,7 @@ public final class Connection extends Game {
 				/* Title */
 				final Table title = new Table(Gui.skin());
 				final Label
-						t1 = new Label("C", Gui.instance().labelStyles.titleTextStyle),
+						t1 = new Label("C", Gui.instance().labelStyles.titleStyle),
 						t3 = new Label("nnecti", t1.getStyle()),
 						t5 = new Label("n", t1.getStyle());
 				t2 = new Label("o", t1.getStyle());
@@ -116,7 +116,7 @@ public final class Connection extends Game {
 				final Table playMenu = new Table(Gui.skin());
 				playMenu.setWidth(Gdx.graphics.getWidth() - Gui.sparsity() * 2);
 				// Play as Host
-				final TextButton playHost = new TextButton(Settings.BT_READY || Settings.NET_READY || Settings.DEV_MODE ? "Open Game" : "Play", Gui.skin());
+				final TextButton playHost = new TextButton("Play", Gui.skin());
 				playHost.addListener(new ClickListener() {
 					@Override
 					public void clicked(InputEvent event, float x, float y) {
@@ -124,18 +124,16 @@ public final class Connection extends Game {
 					}
 				});
 				playMenu.add(playHost).fill().expandX().row();
-				playMenu.setHeight(playMenu.getPrefHeight());
-				Utils.centerXY(playMenu);
-				playMenu.padBottom(Gui.sparsity() * 4);
 				// Play with Bluetooth
 				if (btManager.bluetoothSupported() && (Settings.BT_READY || Settings.DEV_MODE)) {
-					final TextButton playBT = new TextButton("Connect\nvia Bluetooth", Gui.skin());
+					final TextButton playBT = new TextButton("Connect with\nBluetooth", Gui.skin());
 					playBT.addListener(new ClickListener() {
 						@Override
 						public void clicked(InputEvent event, float x, float y) {
 							ScreenManager.setScreen(new ClientBluetoothSetupScreen(mainMenuScreen));
 						}
 					});
+					playBT.getLabel().setStyle(Gui.instance().labelStyles.subTextStyle);
 					playMenu.add(playBT).fill().expandX().padTop(Gui.sparsity() * 2).row();
 				}
 				// Play with Bluetooth
@@ -148,7 +146,8 @@ public final class Connection extends Game {
 					});
 					playMenu.add(playNet).fill().expandX().padTop(Gui.sparsity() * 2).row();
 				}
-				playMenu.top();
+				playMenu.setHeight(playMenu.getPrefHeight());
+				Utils.centerXY(playMenu);
 				ui.addActor(playMenu);
 				/* Bottom bar */
 				final Table bar = new Table(Gui.skin());

@@ -448,7 +448,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		@NonNull
 		final GameParameters params = new GameParameters();
 		final Table sizeTools = new Table(Gui.skin());
-		final Label title = new Label("", Gui.instance().labelStyles.titleTextStyle);
+		final Label title = new Label("", Gui.instance().labelStyles.headerStyle);
 		final Table tools = new Table(Gui.skin());
 		private final Table playerListTable = new Table(Gui.skin());
 		private final ScrollPane playerListScroll = new ScrollPane(playerListTable);
@@ -461,7 +461,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 				playerListTable.invalidateHierarchy();
 				super.act(delta);
 			}
-		};
+		}, addPlayerTools = new Table();
 		private final Label sizeLabel = new Label("", Gui.skin());
 
 		SetupScreen(ScreenManager.UIScreen prev) {
@@ -522,7 +522,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			Human h = new LocalPlayer();
 			byte num = 1;
 			for (Player p : params.players)
-				if (p.getClass() == h.getClass())
+				if (p instanceof Human)
 					num++;
 			h.name = "Player " + num;
 			addPlayer(h);
@@ -569,11 +569,23 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			title.setAlignment(Align.center);
 			tools.add(title).fill().spaceBottom(Gui.sparsityBig()).row();
 
-			// Player list
+			// Players
 			playerTools.add(new Label("Players", Gui.skin())).row();
 			playerTools.add(playerListScroll).growX().row();
 			playerListScroll.setScrollingDisabled(true, false);
 			playerListScroll.setOverscroll(false, true);
+
+			final TextButton addHuman = new TextButton("Add Player", Gui.skin());
+			addHuman.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
+			addHuman.addListener(new ClickListener() {
+				@Override
+				public void clicked(InputEvent event, float x, float y) {
+					addPlayer();
+				}
+			});
+			addPlayerTools.add(addHuman).fill().growX().minWidth(Gui.buttonSizeSmall()).padRight(Gui.sparsity() / 2);
+			playerTools.add(addPlayerTools).fill().spaceBottom(Gui.sparsityBig()).row();
+
 			tools.add(playerTools).growX().expandY().spaceBottom(Gui.sparsityBig()).row();
 			updatePlayerList();
 
@@ -814,7 +826,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	@NonNull
 	final GameParameters params;
 	private final Table subtitle = new Table();
-	private final Label player = new Label("Player ", Gui.skin()), currentPlayer = new Label("", Gui.skin()), nextPlayer = new Label("", Gui.skin());
+	private final Label player = new Label("Player ", Gui.skin()), currentPlayer = new Label("", Gui.skin()), nextPlayer = new Label("", Gui.instance().labelStyles.subTextStyle);
 	private final Label action = new Label("", Gui.skin());
 	private int pi = -1;
 	private boolean inputSuspended = false;
@@ -888,7 +900,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		nextPlayer();
 	}
 
-	void nextPlayer() {
+	private void nextPlayer() {
 		currentMove = null;
 		inputSuspended = true;
 		subtitle.setVisible(false);
@@ -956,10 +968,10 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	@Override
 	protected void buildUI() {
 		player.setStyle(Gui.skin().get(Label.LabelStyle.class));
-		final Label next = new Label("Next: ", Gui.instance().labelStyles.subTextStyle);
+		final Label next = new Label("Next: ", nextPlayer.getStyle());
 		currentPlayer.setStyle(player.getStyle());
 		action.setStyle(player.getStyle());
-		nextPlayer.setStyle(player.getStyle());
+		nextPlayer.setStyle(next.getStyle());
 		final Table header = new Table(Gui.skin()) {
 			@Override
 			public void act(float delta) {
@@ -970,7 +982,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			}
 		}, title = new Table(Gui.skin());
 		subtitle.setSkin(Gui.skin());
-		title.add(player);
+		// title.add(player);
 		title.add(currentPlayer);
 		title.add(action);
 		subtitle.add(next);
@@ -1021,24 +1033,28 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 							move.x = (byte) (x / getBoardSize() * params.size);
 							move.y = (byte) (((getBoardSize() - y) / getBoardSize() * params.size));
 							move.i = currentMove == null ? 0 : currentMove.i;
-							if (currentMove != null && (currentMove.x == move.x && currentMove.y == move.y)) {
+							if (currentMove != null && (currentMove.x == move.x && currentMove.y == move.y))
 								do
 									move.i = (byte) (move.i == params.size - 1 ? 0 : move.i + 1);
 								while (!isMovePossible(move, board, pieces[getPI()]) && move.i != currentMove.i);
-							} else {
+							else
 								for (byte i = 0; i < params.size && !isMovePossible(move, board, pieces[getPI()]); i++)
 									move.i = i;
-							}
-							if (isMovePossible(move, board, pieces[getPI()])) {
-								currentMove = move;
-								getSelectSound(currentMove.i).play();
-							}
+
+							selectMove(move);
 						}
 					}
 			}
 		});
 
 		ui.act(0);
+	}
+
+	final void selectMove(Move move) {
+		if (isMovePossible(move, board, pieces[getPI()])) {
+			currentMove = move;
+			getSelectSound(currentMove.i).play();
+		}
 	}
 
 	@Override

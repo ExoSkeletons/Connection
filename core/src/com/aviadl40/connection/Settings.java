@@ -7,15 +7,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-@SuppressWarnings({"WeakerAccess", "ConstantConditions"})
+@SuppressWarnings({"WeakerAccess"})
 public final class Settings {
 	public static boolean
-			DEV_MODE = true,
+			DEV_MODE = false,
 			musicEnabled = true,
 			sfxEnabled = true,
 			drawBorders = false,
 			moreInfo = false,
-			BT_READY = DEV_MODE,
+			BT_READY = true,
 			NET_READY = false;
 
 	public static boolean save() {

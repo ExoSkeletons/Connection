@@ -58,15 +58,6 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			title.pack();
 
 			// Players
-			final Table addPlayers = new Table(Gui.skin());
-			final TextButton addHuman = new TextButton("Add Player", Gui.skin());
-			addHuman.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
-			addHuman.addListener(new ClickListener() {
-				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					addPlayer();
-				}
-			});
 			final TextButton addBot = new TextButton("Add Bot", Gui.skin());
 			addBot.addListener(new ClickListener() {
 				@Override
@@ -74,15 +65,14 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					addBot();
 				}
 			});
-			addBot.getLabel().setStyle(addHuman.getLabel().getStyle());
-			addPlayers.add(addHuman).fill().growX().minWidth(Gui.buttonSizeSmall()).padRight(Gui.sparsity() / 2);
-			addPlayers.add(addBot).fill().growX().minWidth(Gui.buttonSizeSmall()).padLeft(Gui.sparsity() / 2);
+			addBot.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
+			addPlayerTools.add(addBot).fill().growX().padLeft(Gui.sparsity() / 2);
 			// Add initial Human
 			addPlayer();
 
 			// Host
 			Table hostTable = new Table();
-			hostTable.add(new Label("Host game", Gui.skin())).row();
+			hostTable.add(new Label("Host", Gui.skin())).row();
 			if (Connection.btManager.bluetoothSupported()) {
 				Table btTable = new Table(), btActionsTable = new Table();
 				final Label hostLabel = new Label("Bluetooth", Gui.instance().labelStyles.subTextStyle);
@@ -194,8 +184,6 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			messageLabel.setWrap(true);
 			messageLabel.setTouchable(Touchable.disabled);
 
-
-			playerTools.add(addPlayers).fill().spaceBottom(Gui.sparsityBig()).row();
 			if (Settings.BT_READY || Settings.DEV_MODE)
 				tools.add(hostTable).fill().growX().spaceTop(Gui.sparsityBig()).spaceBottom(Gui.sparsityBig()).row();
 			tools.add(messageLabel).grow().spaceTop(Gui.sparsity()).spaceBottom(Gui.sparsityBig()).row();

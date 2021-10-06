@@ -54,7 +54,7 @@ public final class Gui implements Disposable {
 		}
 	}
 
-	public class ButtonStyles {
+	public static class ButtonStyles {
 		public final ButtonStyle
 				home,
 				prev;
@@ -65,16 +65,19 @@ public final class Gui implements Disposable {
 		}
 	}
 
-	public class LabelStyles {
+	public static class LabelStyles {
 		public final LabelStyle
-				tipStyle,
-				titleTextStyle,
+				titleStyle,
+				headerStyle,
 				subTextStyle;
+		private final LabelStyle
+				bodyStyle;
 
 		LabelStyles(Skin skin) {
-			titleTextStyle = new LabelStyle(buildFont(FONT, 48), Color.WHITE);
+			titleStyle = new LabelStyle(buildFont(FONT, 48), Color.WHITE);
+			headerStyle = new LabelStyle(buildFont(FONT, 44), Color.WHITE);
+			bodyStyle = new LabelStyle(buildFont(FONT, 28), Color.WHITE);
 			subTextStyle = new LabelStyle(buildFont(FONT, 18), Color.WHITE);
-			tipStyle = new LabelStyle(buildFont(FONT, 38), Color.WHITE);
 		}
 	}
 
@@ -151,7 +154,7 @@ public final class Gui implements Disposable {
 	}
 
 	public static float sparsityBig() {
-		return sparsity()*2;
+		return sparsity() * 2;
 	}
 
 	public ButtonStyles buttonStyles;
@@ -170,18 +173,17 @@ public final class Gui implements Disposable {
 		Buttons.home.setStyle(buttonStyles.home);
 		Buttons.back.setStyle(buttonStyles.prev);
 
+		final BitmapFont defFont = labelStyles.bodyStyle.font;
+
 		skin.get(LabelStyle.class).font =
 				skin.get(CheckBox.CheckBoxStyle.class).font =
 						skin.get(TextButton.TextButtonStyle.class).font =
 								skin.get("dimmed", List.ListStyle.class).font =
 										skin.get(SelectBox.SelectBoxStyle.class).font =
-												buildFont(FONT, 32);
-		skin.get(TextField.TextFieldStyle.class).font =
-				buildFont("notes", 32);
-		skin.get(Window.WindowStyle.class).titleFont =
-				buildFont(FONT, 32);
-		skin.get(List.ListStyle.class).font =
-				buildFont(FONT, 48);
+												defFont;
+		skin.get(TextField.TextFieldStyle.class).font = buildFont("notes", 32);
+		skin.get(Window.WindowStyle.class).titleFont = defFont;
+		skin.get(List.ListStyle.class).font = buildFont(FONT, 48);
 	}
 
 	@Override

@@ -9,8 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 
 public abstract class LoadingScreen extends ScreenManager.UIScreen {
-	protected final AssetManager assetManager;
-	private final Label loadingLabel = new Label("", Gui.skin());
+	private final AssetManager assetManager;
+	private final Label loadingLabel = new Label("", Gui.instance().labelStyles.subTextStyle);
 	private final String desc;
 	private boolean finishedLoading = false;
 
