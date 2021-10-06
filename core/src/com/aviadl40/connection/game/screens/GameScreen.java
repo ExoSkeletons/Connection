@@ -905,9 +905,9 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		inputSuspended = true;
 		subtitle.setVisible(false);
 
-		Player p = checkWin(board), next;
-		if (p != null) {
-			winner = p;
+		Player won = checkWin(board);
+		if (won != null) {
+			winner = won;
 			if (Settings.moreInfo)
 				printBoard();
 
@@ -915,9 +915,16 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			currentPlayer.setColor(winner.color);
 			action.setText(" Wins");
 
-			AudioManager.newSFXGame(p instanceof LocalPlayer ? "win" : "lose").play();
+			boolean localPlayed = false;
+			for (Player player : params.players)
+				if (player instanceof LocalPlayer) {
+					localPlayed = true;
+					break;
+				}
+			AudioManager.newSFXGame(localPlayed && !(winner instanceof LocalPlayer) ? "lose" : "win").play();
 		} else {
 			pi = (byte) Utils.getNextIndex(params.players.items, getPI());
+
 			boolean draw = true;
 			for (byte i = 0; i < params.size && draw; i++)
 				draw = pieces[getPI()][i] == 0;
@@ -937,8 +944,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 				AudioManager.newSFXGame("draw").play();
 			} else {
-				p = params.players.get(getPI());
-				next = params.players.get(Utils.getNextIndex(params.players.items, getPI()));
+				Player p = params.players.get(getPI());
+				Player next = params.players.get(Utils.getNextIndex(params.players.items, getPI()));
 
 				currentPlayer.setColor(p.color);
 				currentPlayer.setText(p.name);
@@ -946,8 +953,6 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 				nextPlayer.setColor(next.color);
 				nextPlayer.setText(next.name);
 				subtitle.setVisible(true);
-
-				AudioManager.newSFXGame(p instanceof LocalPlayer ? "next_l" : "next").play();
 
 				if (p instanceof Bot) {
 					ui.addAction(Actions.sequence(
@@ -960,7 +965,10 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 								}
 							})
 					));
-				} else if (p instanceof LocalPlayer) inputSuspended = false;
+				} else if (p instanceof LocalPlayer) {
+					inputSuspended = false;
+					AudioManager.newSFXGame("next_l").play();
+				}
 			}
 		}
 	}
