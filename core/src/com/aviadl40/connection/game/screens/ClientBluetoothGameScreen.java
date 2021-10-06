@@ -228,6 +228,12 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 	}
 
 	@Override
+	void selectMove(Move move) {
+		super.selectMove(move); // Selection doesn't need host confirmation
+		Connection.btManager.writeTo(hostInterface, new byte[]{HostGameScreen.CODE_SELECTED_MOVE, getPI(), move.x, move.y, move.i});
+	}
+
+	@Override
 	protected void makeMove(Move move) {
 		// Send move request to host
 		Connection.btManager.writeTo(hostInterface, new byte[]{HostGameScreen.CODE_MADE_MOVE, getPI(), move.x, move.y, move.i});
@@ -272,6 +278,8 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 			if (opCode == HostGameScreen.CODE_GAME_CLOSED) ScreenManager.setScreen(prev);
 			else if (opCode == HostGameScreen.CODE_GAME_RESTARTED) restart();
 			else if (opCode == HostGameScreen.CODE_PLAYER_LEFT) super.removePlayer(bytes[1]);
+			else if (opCode == HostGameScreen.CODE_SELECTED_MOVE)
+				super.selectMove(new Move(bytes[1], bytes[2], bytes[3]));
 			else if (opCode == HostGameScreen.CODE_MADE_MOVE)
 				super.makeMove(new Move(bytes[1], bytes[2], bytes[3]));
 		}

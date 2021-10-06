@@ -195,12 +195,12 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			bytes[0] = CODE_PLAYER_JOINED;
 			System.arraycopy(colorBytes, 0, bytes, 1, colorBytes.length);
 			System.arraycopy(nameBytes, 0, bytes, 1 + colorBytes.length, nameBytes.length);
-			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices()) {
+			boolean isBT = p instanceof BTPlayer;
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
 				// Don't send player join to the device that asked it
-				// to avoid duplicated players
-				if (p instanceof BTPlayer && ((BTPlayer) p).deviceInterface.equals(d)) continue;
-				Connection.btManager.writeTo(d, bytes);
-			}
+				// to avoid duplicated actions
+				if (!(isBT && ((BTPlayer) p).deviceInterface.equals(d)))
+					Connection.btManager.writeTo(d, bytes);
 			super.addPlayer(p);
 		}
 
@@ -224,12 +224,12 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			bytes[0] = CODE_PLAYER_CHANGED_NAME;
 			bytes[1] = pi;
 			System.arraycopy(nameBytes, 0, bytes, 2, nameBytes.length);
-			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices()) {
+			boolean isBT = p instanceof BTPlayer;
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
 				// Don't send player join to the device that asked it
-				// to avoid duplicated players
-				if (p instanceof BTPlayer && ((BTPlayer) p).deviceInterface.equals(d)) continue;
-				Connection.btManager.writeTo(d, bytes);
-			}
+				// to avoid duplicated actions
+				if (!(isBT && ((BTPlayer) p).deviceInterface.equals(d)))
+					Connection.btManager.writeTo(d, bytes);
 			super.changePlayerName(pi, newName);
 		}
 
@@ -239,12 +239,12 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			byte[] hexBytes = newColor.toString().getBytes(), bytes = new byte[hexBytes.length + 2];
 			bytes[0] = CODE_PLAYER_CHANGED_COLOR;
 			bytes[1] = pi;
-			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices()) {
+			boolean isBT = p instanceof BTPlayer;
+			for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
 				// Don't send player join to the device that asked it
-				// to avoid duplicated players
-				if (p instanceof BTPlayer && ((BTPlayer) p).deviceInterface.equals(d)) continue;
-				Connection.btManager.writeTo(d, bytes);
-			}
+				// to avoid duplicated actions
+				if (!(isBT && ((BTPlayer) p).deviceInterface.equals(d)))
+					Connection.btManager.writeTo(d, bytes);
 			super.changePlayerColor(pi, newColor);
 		}
 
@@ -395,10 +395,25 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			CODE_PLAYER_CHANGED_COLOR = 23,
 			CODE_BOARD_CHANGED_SIZE = 24;
 	static final byte
+			CODE_SELECTED_MOVE = 98,
 			CODE_MADE_MOVE = 99;
 
 	private HostGameScreen(ScreenManager.UIScreen prev, @NonNull GameParameters params) {
 		super(prev, params);
+	}
+
+	@Override
+	void selectMove(Move move) {
+		// Send selection to players
+		byte[] bytes = {CODE_SELECTED_MOVE, move.x, move.y, move.i};
+		Player p = params.players.get(getPI());
+		boolean isBT = p instanceof BTPlayer;
+		for (BluetoothConnectedDeviceInterface d : Connection.btManager.getConnectedDevices())
+			// Don't send player join to the device that asked it
+			// to avoid duplicated actions
+			if (!(isBT && ((BTPlayer) p).deviceInterface.equals(d)))
+				Connection.btManager.writeTo(d, bytes);
+		super.selectMove(move);
 	}
 
 	@Override
@@ -489,13 +504,12 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 	@Override
 	public void onRead(BluetoothConnectedDeviceInterface from, byte[] bytes) {
 		byte opCode = bytes[0];
-
-		if (opCode == CODE_MADE_MOVE) { // Client requests to make a move
-			if (bytes[1] == getPI()) { // Check if it's client's turn
-				Move move = new Move(bytes[2], bytes[3], bytes[4]);
-				if (isMovePossible(move, board, pieces[getPI()])) // Client should never send illegal moves, but check just in case
-					makeMove(move); // Move ok, send it out
-			}
+		if (opCode == CODE_SELECTED_MOVE)
+			selectMove(new Move(bytes[2], bytes[3], bytes[4]));
+		else if (opCode == CODE_MADE_MOVE) { // Client requests to make a move
+			Move move = new Move(bytes[2], bytes[3], bytes[4]);
+			if (isMovePossible(move, board, pieces[getPI()])) // Client should never send illegal moves, but check just in case
+				makeMove(move); // Move ok, send it out
 		} else if (opCode == CODE_PLAYER_LEFT)
 			removePlayer(bytes[1]);
 	}

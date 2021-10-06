@@ -1050,7 +1050,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		ui.act(0);
 	}
 
-	final void selectMove(Move move) {
+	void selectMove(Move move) {
 		if (isMovePossible(move, board, pieces[getPI()])) {
 			currentMove = move;
 			getSelectSound(currentMove.i).play();
