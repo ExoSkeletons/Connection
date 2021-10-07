@@ -221,7 +221,17 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 									break;
 								case BluetoothAdapter.ACTION_DISCOVERY_STARTED:
 									foundDevicesAccessLock.lock();
-									foundDevices.clear();
+									connectedDevicesAccessLock.lock();
+									for (int i = getPairedDevices().size - 1; i >= 0; i--) {
+										boolean connected = false;
+										for (BTConnectedDeviceAdapter connectedDevice : getConnectedDevices())
+											if (connectedDevice.getDevice().equals(getPairedDevices().get(i).getDevice())) {
+												connected = true;
+												break;
+											}
+										if (!connected) getPairedDevices().removeIndex(i);
+									}
+									connectedDevicesAccessLock.unlock();
 									foundDevicesAccessLock.unlock();
 									if (btListener != null)
 										Gdx.app.postRunnable(new Runnable() {
@@ -254,15 +264,15 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 												break;
 											}
 										if (!found) {
-											final BTPairedDeviceAdapter btDeviceInterface = new BTPairedDeviceAdapter(device);
+											final BTPairedDeviceAdapter pairedDevice = new BTPairedDeviceAdapter(device);
 											foundDevicesAccessLock.lock();
-											foundDevices.add(btDeviceInterface);
+											foundDevices.add(pairedDevice);
 											foundDevicesAccessLock.unlock();
 											if (btListener != null)
 												Gdx.app.postRunnable(new Runnable() {
 													@Override
 													public void run() {
-														btListener.onDiscoverDevice(btDeviceInterface);
+														btListener.onDiscoverDevice(pairedDevice);
 													}
 												});
 										}
