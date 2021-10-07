@@ -75,7 +75,6 @@ abstract class BTDeviceAdapter {
 			@Override
 			protected BluetoothSocket doInBackground(BluetoothSocket socket) {
 				try {
-					if (socket.isConnected()) return null;
 					// Try and connect to host
 					// NOTE: Cancelling the task closes the socket and closing the socket aborts
 					// the blocking done by connect() so we do not need to worry.
@@ -83,8 +82,9 @@ abstract class BTDeviceAdapter {
 				} catch (IOException e) {
 					e.printStackTrace();
 					cancel(true);
+					return null;
 				}
-				return null;
+				return socket;
 			}
 
 			@Override
