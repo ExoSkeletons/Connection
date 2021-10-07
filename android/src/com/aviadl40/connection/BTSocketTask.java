@@ -5,17 +5,16 @@ import android.os.AsyncTask;
 import java.io.Closeable;
 import java.io.IOException;
 
-public abstract class BTSocketTask<Socket extends Closeable, Progress, Result> extends AsyncTask<Socket, Progress, Result> implements Closeable {
+public abstract class BTSocketTask<Socket extends Closeable, Progress, Result> extends AsyncTask<Void, Progress, Result> implements Closeable {
 	private final Socket socket;
 
 	BTSocketTask(Socket socket) {
 		this.socket = socket;
 	}
 
-	@SafeVarargs
 	@Override
-	protected final Result doInBackground(Socket... args) {
-		return doInBackground(args[0]);
+	protected final Result doInBackground(Void... args) {
+		return doInBackground(socket);
 	}
 
 	protected abstract Result doInBackground(Socket socket);
