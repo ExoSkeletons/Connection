@@ -224,7 +224,9 @@ public final class Connection extends Game {
 				super.show();
 				t2.setColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random(), 1));
 				t4.setColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random(), 1));
+
 				AudioManager.playTrack(AudioManager.Track.title, false);
+
 				btManager.setBluetoothListener(null);
 			}
 
