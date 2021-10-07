@@ -39,7 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class AndroidLauncher extends AndroidApplication implements PermissionsManager, BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> {
 	// Server
-	private final static class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTConnectedDeviceAdapter> {
+	private final static class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTConnectedDeviceAdapter, Void> {
 		private final BluetoothManager<?, BTConnectedDeviceAdapter> btManager;
 		private final Lock accessLock;
 
@@ -50,14 +50,14 @@ public class AndroidLauncher extends AndroidApplication implements PermissionsMa
 		}
 
 		@Override
-		protected Void doInBackground(Object... params) {
+		protected Void doInBackground(BluetoothServerSocket serverSocket) {
 			while (!isCancelled())
 				// Loop accepting forever, until accepting is canceled.
 				try {
 					// Wait for incoming requests
 					// NOTE: Cancelling the task closes the socket and closing the socket aborts
 					// the blocking done by accept() so we do not need to worry.
-					publishProgress(new BTConnectedDeviceAdapter(socket.accept()));
+					publishProgress(new BTConnectedDeviceAdapter(serverSocket.accept()));
 				} catch (IOException e) {
 					if (!(e instanceof SocketTimeoutException))
 						cancel(true);

@@ -64,7 +64,7 @@ abstract class BTDeviceAdapter {
 
 	static final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 		// Client connection task
-		static final class BTConnectToHostTask extends BTSocketTask<BluetoothSocket, Void> {
+		static final class BTConnectToHostTask extends BTSocketTask<BluetoothSocket, Void,BluetoothSocket> {
 			private final BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager;
 
 			BTConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
@@ -73,8 +73,9 @@ abstract class BTDeviceAdapter {
 			}
 
 			@Override
-			protected Void doInBackground(Object... params) {
+			protected BluetoothSocket doInBackground(BluetoothSocket socket) {
 				try {
+					if (socket.isConnected()) return null;
 					// Try and connect to host
 					// NOTE: Cancelling the task closes the socket and closing the socket aborts
 					// the blocking done by connect() so we do not need to worry.
@@ -87,17 +88,11 @@ abstract class BTDeviceAdapter {
 			}
 
 			@Override
-			protected void onPostExecute(Void aVoid) {
+			protected void onPostExecute(BluetoothSocket socket) {
 				BTConnectedDeviceAdapter connected = new BTConnectedDeviceAdapter(socket);
 				btManager.getConnectedDevices().add(connected);
 				BluetoothListener btListener = btManager.getBluetoothListener();
 				if (btListener != null) btListener.onConnectedToDevice(connected);
-			}
-
-			@NonNull
-			@Override
-			public String toString() {
-				return "BT Connect Task" + " | " + super.toString();
 			}
 		}
 
