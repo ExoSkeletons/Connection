@@ -15,9 +15,9 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.aviadl40.connection.AndroidLauncher;
-import com.aviadl40.connection.permissions.AndroidPermissionsManager;
 import com.aviadl40.connection.game.managers.BluetoothManager;
 import com.aviadl40.connection.game.managers.PermissionsManager;
+import com.aviadl40.connection.permissions.AndroidPermissionsManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ByteArray;
@@ -159,16 +159,15 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 
 	private static final int REQ_MAKE_DISCOVERABLE = 8574;
 
+	private final AndroidLauncher mAndroid;
+	private final AndroidPermissionsManager mPermManager;
+
 	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 	private final Array<BTDeviceAdapter.BTPairedDeviceAdapter> foundDevices = new Array<>();
 	private final Array<BTDeviceAdapter.BTConnectedDeviceAdapter> connectedDevices = new Array<>();
 	private final ReentrantLock
 			connectedDevicesAccessLock = new ReentrantLock(true),
 			foundDevicesAccessLock = new ReentrantLock(true);
-
-	private final AndroidLauncher mAndroid;
-	private final AndroidPermissionsManager mPermManager;
-
 	private BroadcastReceiver btBroadcastHandle;
 	@Nullable
 	private BluetoothManager.BluetoothListener btListener = null;
@@ -355,7 +354,6 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 		if (btReadLoopTask != null) btReadLoopTask.cancel(true);
 		btAdapter.cancelDiscovery();
 	}
-
 
 	@Override
 	public boolean bluetoothSupported() {
