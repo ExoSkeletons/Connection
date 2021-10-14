@@ -1,6 +1,5 @@
 package com.aviadl40.connection;
 
-import com.aviadl40.utils.Utils;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.BluetoothManager;
 import com.aviadl40.connection.game.managers.BluetoothManager.BluetoothConnectedDeviceInterface;
@@ -12,6 +11,7 @@ import com.aviadl40.connection.game.screens.HelpScreen;
 import com.aviadl40.connection.game.screens.HostGameScreen.HostSetupScreen;
 import com.aviadl40.connection.game.screens.LoadingScreen;
 import com.aviadl40.connection.game.screens.SettingsScreen;
+import com.aviadl40.utils.Utils;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
