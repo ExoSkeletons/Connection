@@ -23,13 +23,13 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
 @SuppressWarnings("WeakerAccess")
 public final class Gui implements Disposable {
 	public static final class Buttons {
-		public static final Utils.SquareButton
+		public static final GdxUtils.SquareButton
 				home,
 				back;
 
 		static {
-			home = new Utils.SquareButton();
-			back = new Utils.SquareButton();
+			home = new GdxUtils.SquareButton();
+			back = new GdxUtils.SquareButton();
 
 			home.addListener(new ClickListener() {
 				@Override
