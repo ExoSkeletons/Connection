@@ -3,6 +3,7 @@ package com.aviadl40.connection;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.aviadl40.utils.Utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.files.FileHandle;
@@ -776,7 +777,7 @@ public class GdxUtils {
 	 */
 	@Nullable
 	public static Animation<TextureRegionDrawable> buildAnimation(@NonNull AssetManager assetManager, @NonNull String assetPath, int splitW, int splitH, int frameCount, float frameDuration, @NonNull Animation.PlayMode pm) {
-		FileHandle file = Gdx.files.internal(assetPath + Utils.Extension.png);
+		FileHandle file = Gdx.files.internal(assetPath + com.aviadl40.utils.Utils.Extension.png);
 
 		if (!assetManager.isLoaded(file.path(), Texture.class))
 			return null;
@@ -789,11 +790,11 @@ public class GdxUtils {
 	 *
 	 * @param assetManager      Asset manager to use for loading.
 	 * @param dir               Target directory.
-	 * @param extension         {@link Utils.Extension} to use for file filtering, leave null for all files.
+	 * @param extension         {@link com.aviadl40.utils.Utils.Extension} to use for file filtering, leave null for all files.
 	 * @param type              Class type of asset to load.
 	 * @param assetLoadListener {@link AssetLoadListener} to fire for each file loaded
 	 */
-	static <T> void loadAssetFilesRecursively(@NonNull AssetManager assetManager, @NonNull FileHandle dir, @Nullable Utils.Extension extension, @NonNull Class<T> type, @Nullable AssetLoadListener assetLoadListener) {
+	static <T> void loadAssetFilesRecursively(@NonNull AssetManager assetManager, @NonNull FileHandle dir, @Nullable com.aviadl40.utils.Utils.Extension extension, @NonNull Class<T> type, @Nullable AssetLoadListener assetLoadListener) {
 		for (FileHandle file : dir.list())
 			if (file.isDirectory())
 				loadAssetFilesRecursively(assetManager, file, extension, type, assetLoadListener);
@@ -804,7 +805,7 @@ public class GdxUtils {
 			}
 	}
 
-	static <T> void loadAssetFilesRecursively(AssetManager assetManager, FileHandle dir, Utils.Extension extension, Class<T> tClass) {
+	static <T> void loadAssetFilesRecursively(AssetManager assetManager, FileHandle dir, com.aviadl40.utils.Utils.Extension extension, Class<T> tClass) {
 		for (FileHandle file : dir.list())
 			if (file.isDirectory())
 				loadAssetFilesRecursively(assetManager, file, extension, tClass);
@@ -868,7 +869,7 @@ public class GdxUtils {
 	}
 
 	public static float getFiniteFloatAttribute(XmlReader.Element e, String name, float defaultValue) {
-		return Utils.finite(e.getFloatAttribute(name, Float.NaN), defaultValue);
+		return com.aviadl40.utils.Utils.finite(e.getFloatAttribute(name, Float.NaN), defaultValue);
 	}
 
 	public static void paste(TextField textField, String text) {

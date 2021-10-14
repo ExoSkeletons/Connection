@@ -2,7 +2,6 @@ package com.aviadl40.connection.game.screens;
 
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
-import com.aviadl40.connection.Utils;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;

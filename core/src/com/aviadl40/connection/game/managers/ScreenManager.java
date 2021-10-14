@@ -4,7 +4,7 @@ import android.support.annotation.Nullable;
 
 import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.Settings;
-import com.aviadl40.connection.Utils;
+import com.aviadl40.utils.Utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;

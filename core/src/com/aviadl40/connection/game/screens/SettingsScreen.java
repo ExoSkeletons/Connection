@@ -3,7 +3,6 @@ package com.aviadl40.connection.game.screens;
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
-import com.aviadl40.connection.Utils;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.badlogic.gdx.Gdx;

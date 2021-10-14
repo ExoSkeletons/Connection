@@ -6,7 +6,7 @@ import android.support.annotation.Nullable;
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
-import com.aviadl40.connection.Utils;
+import com.aviadl40.utils.Utils;
 import com.aviadl40.connection.game.GameParameters;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;

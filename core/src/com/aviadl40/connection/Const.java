@@ -1,6 +1,6 @@
 package com.aviadl40.connection;
 
-import com.aviadl40.connection.Utils.Extension;
+import com.aviadl40.utils.Utils.Extension;
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;

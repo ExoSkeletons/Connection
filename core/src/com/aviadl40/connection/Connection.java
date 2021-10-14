@@ -1,5 +1,6 @@
 package com.aviadl40.connection;
 
+import com.aviadl40.utils.Utils;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.BluetoothManager;
 import com.aviadl40.connection.game.managers.BluetoothManager.BluetoothConnectedDeviceInterface;
@@ -38,7 +39,7 @@ public final class Connection extends Game {
 	public static Connection instance;
 	public static BluetoothManager<BluetoothPairedDeviceInterface, BluetoothConnectedDeviceInterface> btManager;
 	private static PermissionsManager permManager;
-	private static Utils.LoadState loadState = Utils.LoadState.UNLOADED;
+	private static com.aviadl40.utils.Utils.LoadState loadState = com.aviadl40.utils.Utils.LoadState.UNLOADED;
 
 	private final AssetManager assetManager = new AssetManager();
 
@@ -52,8 +53,8 @@ public final class Connection extends Game {
 	}
 
 	private void reloadAssets() {
-		if (loadState == Utils.LoadState.LOADED) dispose();
-		loadState = Utils.LoadState.LOADING;
+		if (loadState == com.aviadl40.utils.Utils.LoadState.LOADED) dispose();
+		loadState = com.aviadl40.utils.Utils.LoadState.LOADING;
 
 		Settings.load();
 
@@ -71,7 +72,7 @@ public final class Connection extends Game {
 			@Override
 			protected void onFinish() {
 				// Build resources
-				loadState = Utils.LoadState.LOADED;
+				loadState = com.aviadl40.utils.Utils.LoadState.LOADED;
 				ui.addAction(Actions.sequence(
 						Actions.fadeOut(.25f),
 						Actions.delay(.5f),
@@ -88,7 +89,7 @@ public final class Connection extends Game {
 
 	@Override
 	public void create() {
-		if (loadState == Utils.LoadState.LOADED)
+		if (loadState == com.aviadl40.utils.Utils.LoadState.LOADED)
 			dispose();
 		mainMenuScreen = new ScreenManager.UIScreen(null) {
 			Label t2, t4;
@@ -213,7 +214,7 @@ public final class Connection extends Game {
 						c.setSize(Gui.buttonSize(), Gui.buttonSize());
 						c.setX(Gui.sparsity() + (c.getWidth() + Gui.sparsity()) * i);
 						c.setY(Gdx.graphics.getHeight() - (Gui.buttonSize() + Gui.sparsity()) * 2);
-						c.setName(Utils.toSingleLine(c.getText().toString()));
+						c.setName(com.aviadl40.utils.Utils.toSingleLine(c.getText().toString()));
 					}
 					ui.addActor(debugButtons);
 				}
@@ -249,7 +250,7 @@ public final class Connection extends Game {
 		Settings.save();
 		ScreenManager.current().dispose();
 		assetManager.clear();
-		loadState = Utils.LoadState.UNLOADED;
+		loadState = com.aviadl40.utils.Utils.LoadState.UNLOADED;
 	}
 
 	@Override

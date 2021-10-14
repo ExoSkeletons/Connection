@@ -1,6 +1,4 @@
-package com.aviadl40.connection;
-
-import android.support.annotation.Nullable;
+package com.aviadl40.utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -115,7 +113,7 @@ public final class Utils {
 		return "" + (withAmount ? amount + " " : "") + (Math.abs(amount) == 1 ? name : plural(name));
 	}
 
-	public static String capitaliseFirst(String s, @Nullable String regexSeparator) {
+	public static String capitaliseFirst(String s, String regexSeparator) {
 		StringBuilder res = new StringBuilder();
 		if (regexSeparator != null)
 			for (String word : s.split(regexSeparator))
@@ -129,7 +127,7 @@ public final class Utils {
 		return capitaliseFirst(s, null);
 	}
 
-	public static String toStringShort(@Nullable Object o) {
+	public static String toStringShort(Object o) {
 		if (o == null)
 			return "null";
 		Class c = o.getClass();
