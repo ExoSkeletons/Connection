@@ -3,6 +3,7 @@ package com.aviadl40.connection.game.screens;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.Utils;
@@ -595,7 +596,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			changeBoardSize(params.size);
 
 			tools.setWidth(Gdx.graphics.getWidth() - Gui.sparsityBig() * 2);
-			Utils.centerXY(tools);
+			GdxUtils.centerXY(tools);
 			tools.center();
 			tools.act(0);
 			ui.addActor(tools);
@@ -989,8 +990,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			@Override
 			public void act(float delta) {
 				pack();
-				Utils.centerX(this);
-				Utils.centerY(this, (Gdx.graphics.getHeight() + getBoardSize()) / 2 + Gui.sparsity(), Gdx.graphics.getHeight() - Gui.sparsity());
+				GdxUtils.centerX(this);
+				GdxUtils.centerY(this, (Gdx.graphics.getHeight() + getBoardSize()) / 2 + Gui.sparsity(), Gdx.graphics.getHeight() - Gui.sparsity());
 				super.act(delta);
 			}
 		}, title = new Table(Gui.skin());
@@ -1019,8 +1020,8 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			}
 		};
 		confirmMove.setSize(Gdx.graphics.getWidth() - Gui.sparsity() * 2, confirmMove.getPrefHeight() + Gui.sparsity());
-		Utils.centerX(confirmMove);
-		Utils.centerY(confirmMove, quit.getY() + quit.getHeight() + Gui.sparsity(), (Gdx.graphics.getHeight() - getBoardSize()) / 2 - Gui.sparsity());
+		GdxUtils.centerX(confirmMove);
+		GdxUtils.centerY(confirmMove, quit.getY() + quit.getHeight() + Gui.sparsity(), (Gdx.graphics.getHeight() - getBoardSize()) / 2 - Gui.sparsity());
 		confirmMove.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {

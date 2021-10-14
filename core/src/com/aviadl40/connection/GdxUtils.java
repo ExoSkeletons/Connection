@@ -42,7 +42,8 @@ import com.badlogic.gdx.utils.XmlWriter;
 import java.io.IOException;
 import java.io.Serializable;
 
-class GdxUtils {
+@SuppressWarnings({"unused", "WeakerAccess", "deprecation"})
+public class GdxUtils {
 	public static abstract class KonamiCodeListener extends GestureDetector.GestureAdapter {
 		// Up Up Down Down Left Right A B Start
 

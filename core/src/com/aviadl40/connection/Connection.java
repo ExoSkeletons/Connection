@@ -60,13 +60,13 @@ public final class Connection extends Game {
 		Gui.recreateBatches();
 
 		assetManager.load(Gui.SKIN_PATH, Skin.class);
-		Utils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.music.getPath()), Const.Folder.music.extension, Music.class);
+		GdxUtils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.music.getPath()), Const.Folder.music.extension, Music.class);
 		assetManager.finishLoading();
 		Gui.reload(assetManager.get(Gui.SKIN_PATH, Skin.class));
 		AudioManager.reload(assetManager);
 
-		Utils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.textures.getPath()), Const.Folder.textures.extension, Texture.class);
-		Utils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.sound.getPath()), Const.Folder.sound.extension, Sound.class);
+		GdxUtils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.textures.getPath()), Const.Folder.textures.extension, Texture.class);
+		GdxUtils.loadAssetFilesRecursively(assetManager, Gdx.files.internal(Const.Folder.sound.getPath()), Const.Folder.sound.extension, Sound.class);
 		ScreenManager.setScreen(new LoadingScreen(assetManager, "") {
 			@Override
 			protected void onFinish() {
@@ -109,7 +109,7 @@ public final class Connection extends Game {
 				title.add(t4).padLeft(Gui.getScale() * .4f).padRight(Gui.getScale() * .4f);
 				title.add(t5);
 				title.pack();
-				Utils.centerX(title);
+				GdxUtils.centerX(title);
 				title.setY(Gdx.graphics.getHeight() - Gui.sparsity() - title.getHeight() * title.getScaleY());
 				ui.addActor(title);
 				/* Play */
@@ -147,7 +147,7 @@ public final class Connection extends Game {
 					playMenu.add(playNet).fill().expandX().padTop(Gui.sparsity() * 2).row();
 				}
 				playMenu.setHeight(playMenu.getPrefHeight());
-				Utils.centerXY(playMenu);
+				GdxUtils.centerXY(playMenu);
 				ui.addActor(playMenu);
 				/* Bottom bar */
 				final Table bar = new Table(Gui.skin());
@@ -171,7 +171,7 @@ public final class Connection extends Game {
 				});
 				bar.add(help).padLeft(Gui.sparsity());
 				//*/
-				Utils.centerX(bar);
+				GdxUtils.centerX(bar);
 				bar.setY(Gui.sparsity());
 				ui.addActor(bar);
 				/* Dev tools */

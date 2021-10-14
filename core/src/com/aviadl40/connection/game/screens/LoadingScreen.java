@@ -1,5 +1,6 @@
 package com.aviadl40.connection.game.screens;
 
+import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Utils;
 import com.aviadl40.connection.game.managers.ScreenManager;
@@ -45,7 +46,7 @@ public abstract class LoadingScreen extends ScreenManager.UIScreen {
 				Math.min(loadingLabel.getPrefWidth(), Gdx.graphics.getWidth() - Gui.sparsity() * 2),
 				Math.min(loadingLabel.getPrefHeight(), Gdx.graphics.getHeight() - Gui.sparsity() * 2)
 		);
-		Utils.centerXY(loadingLabel);
+		GdxUtils.centerXY(loadingLabel);
 		super.update(delta);
 	}
 

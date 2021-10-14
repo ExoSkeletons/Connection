@@ -1,5 +1,6 @@
 package com.aviadl40.connection.game.screens;
 
+import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.Utils;
@@ -63,16 +64,16 @@ public final class SettingsScreen extends ScreenManager.UIScreen {
 		settingsTable.center();
 		settingsTable.setWidth(Gdx.graphics.getWidth() - Gui.sparsity() * 2);
 		settingsTable.act(0);
-		Utils.centerXY(settingsTable);
+		GdxUtils.centerXY(settingsTable);
 
 		final Label
 				title = new Label("Settings", Gui.instance().labelStyles.headerStyle),
 				credits = new Label("Music by\nKevin Macleod incompetech.com\nSFX by\nmixkit.co, soundbible.com", Gui.instance().labelStyles.subTextStyle);
-		Utils.centerX(title);
+		GdxUtils.centerX(title);
 		title.setY(Gdx.graphics.getHeight() - Gui.sparsity() - title.getHeight());
 
 		credits.setAlignment(Align.center);
-		Utils.centerX(credits);
+		GdxUtils.centerX(credits);
 		credits.setY(Gui.sparsity());
 
 		ui.addActor(title);

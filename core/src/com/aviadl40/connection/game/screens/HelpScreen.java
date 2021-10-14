@@ -1,5 +1,6 @@
 package com.aviadl40.connection.game.screens;
 
+import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Utils;
 import com.aviadl40.connection.game.managers.ScreenManager;
@@ -36,8 +37,8 @@ public final class HelpScreen extends ScreenManager.UIScreen {
 		text.setAlignment(Align.center);
 		text.setWrap(true);
 		text.setWidth(Gdx.graphics.getWidth() - Gui.sparsity() * 2);
-		Utils.centerX(text);
-		Utils.centerY(text, (Gdx.graphics.getHeight() + GameScreen.getBoardSize()) / 2 + Gui.sparsity(), Gdx.graphics.getHeight() - Gui.sparsity());
+		GdxUtils.centerX(text);
+		GdxUtils.centerY(text, (Gdx.graphics.getHeight() + GameScreen.getBoardSize()) / 2 + Gui.sparsity(), Gdx.graphics.getHeight() - Gui.sparsity());
 		ui.addActor(text);
 
 		TextButton exit = new TextButton("Got it!", Gui.skin());
@@ -47,8 +48,8 @@ public final class HelpScreen extends ScreenManager.UIScreen {
 				back();
 			}
 		});
-		Utils.centerX(exit);
-		Utils.centerY(exit, Gui.sparsity(), (Gdx.graphics.getHeight() - GameScreen.getBoardSize()) / 2 - Gui.sparsity());
+		GdxUtils.centerX(exit);
+		GdxUtils.centerY(exit, Gui.sparsity(), (Gdx.graphics.getHeight() - GameScreen.getBoardSize()) / 2 - Gui.sparsity());
 		ui.addActor(exit);
 	}
 
