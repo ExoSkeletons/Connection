@@ -52,18 +52,6 @@ public final class Utils {
 		return ((int) (f * s)) / s;
 	}
 
-	public static float findX(float V, float T) { // X = VT
-		return V * T;
-	}
-
-	public static float findV(float X, float T) { // V = X/T
-		return X / T;
-	}
-
-	public static float findT(float X, float V) { // T = X/V
-		return X / V;
-	}
-
 	public static boolean isFinite(float f) {
 		return !(Float.isNaN(f) || Float.isInfinite(f));
 	}
