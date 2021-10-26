@@ -9,7 +9,8 @@ import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 
 public class AndroidLauncher extends AndroidApplication {
-	private AndroidBluetoothManager btManager = null;
+	private final AndroidPermissionsManager permManager = new AndroidPermissionsManager(this);
+	private final AndroidBluetoothManager btManager = new AndroidBluetoothManager(this, permManager);
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -20,22 +21,21 @@ public class AndroidLauncher extends AndroidApplication {
 		config.useCompass = false;
 		config.useGyroscope = false;
 
-		AndroidPermissionsManager permManager = new AndroidPermissionsManager(this);
-		btManager = new AndroidBluetoothManager(this, permManager).init();
+		btManager.init();
 
 		initialize(new Connection(permManager, btManager), config);
 	}
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (btManager != null) btManager.onActivityResult(requestCode, resultCode, data);
+		btManager.onActivityResult(requestCode, resultCode, data);
 
 		super.onActivityResult(requestCode, resultCode, data);
 	}
 
 	@Override
 	protected void onDestroy() {
-		if (btManager != null) btManager.destroy();
+		btManager.destroy();
 
 		super.onDestroy();
 	}
