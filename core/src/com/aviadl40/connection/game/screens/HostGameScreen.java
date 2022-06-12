@@ -5,13 +5,13 @@ import android.support.annotation.NonNull;
 import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
-import com.aviadl40.utils.Utils;
 import com.aviadl40.connection.game.GameParameters;
+import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.gdxbt.core.BluetoothManager;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothConnectedDeviceInterface;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothPairedDeviceInterface;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothState;
-import com.aviadl40.connection.game.managers.ScreenManager;
+import com.aviadl40.utils.Utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -73,6 +73,10 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			// Host
 			Table hostTable = new Table();
 			hostTable.add(new Label("Host", Gui.skin())).row();
+			boolean showHosting =
+					Settings.DEV_MODE
+							|| Settings.BT_READY
+							|| Settings.NET_READY;
 			if (Connection.btManager.bluetoothSupported()) {
 				Table btTable = new Table(), btActionsTable = new Table();
 				final Label hostLabel = new Label("Bluetooth", Gui.instance().labelStyles.subTextStyle);
@@ -103,7 +107,7 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 				btActionsTable.add(toggleBTHost).right();
 
 				hostTable.add(btTable).growX().row();
-			} else if (Settings.moreInfo) {
+			} else {
 				Label ns = new Label("Bluetooth is not supported on this device.", Gui.instance().labelStyles.subTextStyle);
 				ns.setWrap(true);
 				ns.setAlignment(Align.center);
@@ -184,7 +188,7 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 			messageLabel.setWrap(true);
 			messageLabel.setTouchable(Touchable.disabled);
 
-			if (Settings.BT_READY || Settings.DEV_MODE)
+			if (showHosting)
 				tools.add(hostTable).fill().growX().spaceTop(Gui.sparsityBig()).spaceBottom(Gui.sparsityBig()).row();
 			tools.add(messageLabel).grow().spaceTop(Gui.sparsity()).spaceBottom(Gui.sparsityBig()).row();
 			tools.add(startGame).fill();
