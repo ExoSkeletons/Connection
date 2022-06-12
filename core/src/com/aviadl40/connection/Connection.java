@@ -137,7 +137,7 @@ public final class Connection extends Game {
 					playBT.getLabel().setStyle(Gui.instance().labelStyles.subTextStyle);
 					playMenu.add(playBT).fill().expandX().padTop(Gui.sparsity() * 2).row();
 				}
-				// Play with Bluetooth
+				// Play with Online
 				if (Settings.NET_READY) {
 					final TextButton playNet = new TextButton("Play Online", Gui.skin());
 					playNet.addListener(new ClickListener() {
