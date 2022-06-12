@@ -1,0 +1,10 @@
+apply plugin: 'java-library'
+
+dependencies {
+    implementation 'com.android.support:support-annotations:28.0.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+}
+
+sourceCompatibility = "7"
+targetCompatibility = "7"

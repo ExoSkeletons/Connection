@@ -1,4 +1,4 @@
-package com.aviadl40.connection.bluetooth;
+package com.aviadl40.gdxbt.android;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -14,13 +14,13 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.aviadl40.connection.AndroidLauncher;
-import com.aviadl40.connection.game.managers.BluetoothManager;
-import com.aviadl40.connection.game.managers.PermissionsManager;
-import com.aviadl40.connection.permissions.AndroidPermissionsManager;
+import com.aviadl40.gdxbt.core.BluetoothManager;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ByteArray;
+import com.aviadl40.gdxperms.android.AndroidPermissionsManager;
+import com.aviadl40.gdxperms.core.PermissionsManager;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -159,7 +159,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 
 	private static final int REQ_MAKE_DISCOVERABLE = 8574;
 
-	private final AndroidLauncher mAndroid;
+	private final AndroidApplication mAndroid;
 	private final AndroidPermissionsManager mPermManager;
 
 	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -176,7 +176,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 	@Nullable
 	private BTReadLoopTask btReadLoopTask = null;
 
-	public AndroidBluetoothManager(AndroidLauncher mAndroid, AndroidPermissionsManager mPermManager) {
+	public AndroidBluetoothManager(AndroidApplication mAndroid, AndroidPermissionsManager mPermManager) {
 		this.mAndroid = mAndroid;
 		this.mPermManager = mPermManager;
 	}
@@ -222,7 +222,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 									for (int i = getPairedDevices().size - 1; i >= 0; i--) {
 										boolean connected = false;
 										for (BTDeviceAdapter.BTConnectedDeviceAdapter connectedDevice : getConnectedDevices())
-											if (connectedDevice.getDevice().equals(getPairedDevices().get(i).getDevice())) {
+											if (connectedDevice.deviceEquals(getPairedDevices().get(i))) {
 												connected = true;
 												break;
 											}
@@ -256,7 +256,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 										// Register found devices
 										boolean found = false;
 										for (BTDeviceAdapter.BTPairedDeviceAdapter pd : foundDevices)
-											if (pd.getDevice().equals(device)) {
+											if (device.equals(pd.getDevice())) {
 												found = true;
 												break;
 											}
@@ -289,7 +289,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 										BTDeviceAdapter.BTConnectedDeviceAdapter d;
 										for (int i = connectedDevices.size - 1; i >= 0; i--) {
 											d = connectedDevices.get(i);
-											if (d.getDevice().equals(device)) {
+											if (device.equals(d.getDevice())) {
 												connectedDevicesAccessLock.lock();
 												connectedDevices.removeIndex(i);
 												connectedDevicesAccessLock.unlock();

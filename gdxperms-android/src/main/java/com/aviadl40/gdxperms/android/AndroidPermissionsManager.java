@@ -1,21 +1,21 @@
-package com.aviadl40.connection.permissions;
+package com.aviadl40.gdxperms.android;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
 
-import com.aviadl40.connection.AndroidLauncher;
-import com.aviadl40.connection.game.managers.PermissionsManager;
+import com.badlogic.gdx.backends.android.AndroidApplication;
+import com.aviadl40.gdxperms.core.PermissionsManager;
 
 public final class AndroidPermissionsManager implements PermissionsManager {
-	private final AndroidLauncher mAndroid;
+	private final AndroidApplication mAndroid;
 
-	public AndroidPermissionsManager(AndroidLauncher mAndroid) {
+	public AndroidPermissionsManager(AndroidApplication mAndroid) {
 		this.mAndroid = mAndroid;
 	}
 
-	private String getPermName(Permission perm) {
+	private String getPermName(PermissionsManager.Permission perm) {
 		switch (perm) {
 			case BLUETOOTH:
 				return Manifest.permission.BLUETOOTH;

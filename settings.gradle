@@ -1,2 +1,6 @@
 include 'desktop', 'android', 'html', 'core'
 include ':utils'
+include ':gdxbt-core'
+include ':gdxbt-android'
+include ':gdxperms-core'
+include ':gdxperms-android'

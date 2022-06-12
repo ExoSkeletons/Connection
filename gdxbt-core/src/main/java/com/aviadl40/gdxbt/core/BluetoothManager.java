@@ -1,4 +1,4 @@
-package com.aviadl40.connection.game.managers;
+package com.aviadl40.gdxbt.core;
 
 import android.support.annotation.Nullable;
 

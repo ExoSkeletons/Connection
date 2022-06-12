@@ -1,9 +1,10 @@
-package com.aviadl40.connection.game.managers;
+package com.aviadl40.gdxperms.core;
 
 import android.support.annotation.NonNull;
 
 import java.io.IOException;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public interface PermissionsManager {
 	enum Permission {
 		BLUETOOTH,

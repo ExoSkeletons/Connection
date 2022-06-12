@@ -1,4 +1,4 @@
-package com.aviadl40.connection.bluetooth;
+package com.aviadl40.gdxbt.android;
 
 import android.os.AsyncTask;
 

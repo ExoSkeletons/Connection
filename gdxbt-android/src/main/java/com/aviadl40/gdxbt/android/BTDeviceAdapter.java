@@ -1,4 +1,4 @@
-package com.aviadl40.connection.bluetooth;
+package com.aviadl40.gdxbt.android;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -6,8 +6,8 @@ import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.aviadl40.connection.game.managers.BluetoothManager;
-import com.aviadl40.connection.game.managers.BluetoothManager.BluetoothListener;
+import com.aviadl40.gdxbt.core.BluetoothManager;
+import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothListener;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -52,19 +52,20 @@ abstract class BTDeviceAdapter {
 
 		@Override
 		public String getName() {
-			return getDevice().getName();
+			BluetoothDevice device = getDevice();
+			return device == null ? "" : device.getName();
 		}
 
-		@NonNull
+		@Nullable
 		@Override
 		BluetoothDevice getDevice() {
-			return socket.getRemoteDevice();
+			return socket == null ? null : socket.getRemoteDevice();
 		}
 	}
 
 	static final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 		// Client connection task
-		static final class BTConnectToHostTask extends BTSocketTask<BluetoothSocket, Void,BluetoothSocket> {
+		static final class BTConnectToHostTask extends BTSocketTask<BluetoothSocket, Void, BluetoothSocket> {
 			private final BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager;
 
 			BTConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
@@ -133,11 +134,14 @@ abstract class BTDeviceAdapter {
 		}
 	}
 
-	@NonNull
+	@Nullable
 	abstract BluetoothDevice getDevice();
 
-	@Override
-	public boolean equals(@Nullable Object obj) {
-		return obj instanceof BTDeviceAdapter && getDevice().equals(((BTDeviceAdapter) obj).getDevice());
+	/**
+	 * @return true if obj is a device adapter & both the devices attached to the adapters are equal
+	 * @see BTDeviceAdapter#equals(Object)
+	 */
+	boolean deviceEquals(@Nullable BTDeviceAdapter deviceAdapter) {
+		return deviceAdapter != null && getDevice() != null && getDevice().equals(deviceAdapter.getDevice());
 	}
 }

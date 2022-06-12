@@ -45,6 +45,8 @@ project(":desktop") {
 
     dependencies {
         implementation project(":core")
+        implementation project(":gdxperms-core")
+        implementation project(":gdxbt-core")
         api "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         api "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
@@ -59,6 +61,10 @@ project(":android") {
 
     dependencies {
         implementation project(":core")
+        implementation project(":gdxperms-core")
+        implementation project(":gdxperms-android")
+        implementation project(":gdxbt-core")
+        implementation project(":gdxbt-android")
         api "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
@@ -84,6 +90,8 @@ project(":html") {
 
     dependencies {
         implementation project(":core")
+        implementation project(":gdxperms-core")
+        implementation project(':gdxbt-core')
         api "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
         api "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
         api "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
@@ -96,6 +104,10 @@ project(":core") {
 
 
     dependencies {
+        implementation 'com.android.support:support-annotations:28.0.0'
+        implementation project(':utils')
+        implementation project(":gdxperms-core")
+        implementation project(':gdxbt-core')
         api "com.badlogicgames.gdx:gdx:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         
