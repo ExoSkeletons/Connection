@@ -11,11 +11,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public final class BTConnectedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothConnectedDeviceInterface {
+public final class ConnectedDeviceAdapter extends DeviceAdapter implements BluetoothManager.BluetoothConnectedDeviceInterface {
 	@Nullable
 	private BluetoothSocket socket;
 
-	BTConnectedDeviceAdapter(@Nullable BluetoothSocket socket) {
+	ConnectedDeviceAdapter(@Nullable BluetoothSocket socket) {
 		this.socket = socket;
 	}
 

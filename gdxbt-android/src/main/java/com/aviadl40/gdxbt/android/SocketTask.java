@@ -5,10 +5,10 @@ import android.os.AsyncTask;
 import java.io.Closeable;
 import java.io.IOException;
 
-public abstract class BTSocketTask<Socket extends Closeable, Progress, Result> extends AsyncTask<Void, Progress, Result> implements Closeable {
+public abstract class SocketTask<Socket extends Closeable, Progress, Result> extends AsyncTask<Void, Progress, Result> implements Closeable {
 	private final Socket socket;
 
-	BTSocketTask(Socket socket) {
+	SocketTask(Socket socket) {
 		this.socket = socket;
 	}
 

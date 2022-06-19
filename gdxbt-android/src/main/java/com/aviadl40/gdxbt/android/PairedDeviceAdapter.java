@@ -12,12 +12,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.UUID;
 
-final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
+final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 	// Client connection task
-	static final class BTConnectToHostTask extends BTSocketTask<BluetoothSocket, Void, BluetoothSocket> {
+	static final class ConnectToHostTask extends SocketTask<BluetoothSocket, Void, BluetoothSocket> {
 		private final BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager;
 
-		BTConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
+		ConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
 			super(connectionSocket);
 			this.btManager = btManager;
 		}
@@ -39,7 +39,7 @@ final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothMa
 
 		@Override
 		protected void onPostExecute(BluetoothSocket socket) {
-			BTConnectedDeviceAdapter connected = new BTConnectedDeviceAdapter(socket);
+			ConnectedDeviceAdapter connected = new ConnectedDeviceAdapter(socket);
 			btManager.getConnectedDevices().add(connected);
 			BluetoothManager.BluetoothListener btListener = btManager.getBluetoothListener();
 			if (btListener != null) btListener.onConnectedToDevice(connected);
@@ -49,9 +49,9 @@ final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothMa
 	@NonNull
 	private final BluetoothDevice device;
 	@Nullable
-	private BTConnectToHostTask connectTask = null;
+	private ConnectToHostTask connectTask = null;
 
-	BTPairedDeviceAdapter(@NonNull BluetoothDevice device) {
+	PairedDeviceAdapter(@NonNull BluetoothDevice device) {
 		this.device = device;
 	}
 
@@ -60,7 +60,7 @@ final class BTPairedDeviceAdapter extends BTDeviceAdapter implements BluetoothMa
 		if (connectTask != null) connectTask.cancel(true);
 		try {
 			BluetoothSocket connectionSocket = device.createRfcommSocketToServiceRecord(verificationUUID);
-			connectTask = new BTConnectToHostTask(connectionSocket, btManager);
+			connectTask = new ConnectToHostTask(connectionSocket, btManager);
 			connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 			// NOTE: we do not close the socket, as the connect task just got it and needs it open.
 			// The connect task therefore is now the one in charge of closing the socket after it's done.
