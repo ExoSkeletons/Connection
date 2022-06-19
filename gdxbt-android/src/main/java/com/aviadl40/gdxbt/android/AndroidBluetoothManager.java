@@ -34,13 +34,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static android.app.Activity.RESULT_CANCELED;
 
-public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceAdapter.BTPairedDeviceAdapter, BTDeviceAdapter.BTConnectedDeviceAdapter> {
+public final class AndroidBluetoothManager implements BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> {
 	// Hosting
-	private final static class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTDeviceAdapter.BTConnectedDeviceAdapter, Void> {
-		private final BluetoothManager<?, BTDeviceAdapter.BTConnectedDeviceAdapter> btManager;
+	private final static class BTAcceptClientsTask extends BTSocketTask<BluetoothServerSocket, BTConnectedDeviceAdapter, Void> {
+		private final BluetoothManager<?, BTConnectedDeviceAdapter> btManager;
 		private final Lock accessLock;
 
-		BTAcceptClientsTask(@NonNull BluetoothServerSocket serverSocket, BluetoothManager<?, BTDeviceAdapter.BTConnectedDeviceAdapter> btManager, Lock accessLock) {
+		BTAcceptClientsTask(@NonNull BluetoothServerSocket serverSocket, BluetoothManager<?, BTConnectedDeviceAdapter> btManager, Lock accessLock) {
 			super(serverSocket);
 			this.btManager = btManager;
 			this.accessLock = accessLock;
@@ -54,7 +54,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 					// Wait for incoming requests
 					// NOTE: Cancelling the task closes the socket and closing the socket aborts
 					// the blocking done by accept() so we do not need to worry.
-					publishProgress(new BTDeviceAdapter.BTConnectedDeviceAdapter(serverSocket.accept()));
+					publishProgress(new BTConnectedDeviceAdapter(serverSocket.accept()));
 				} catch (IOException e) {
 					if (!(e instanceof SocketTimeoutException))
 						cancel(true);
@@ -63,7 +63,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 		}
 
 		@Override
-		protected void onProgressUpdate(final BTDeviceAdapter.BTConnectedDeviceAdapter... progress) {
+		protected void onProgressUpdate(final BTConnectedDeviceAdapter... progress) {
 			accessLock.lock();
 			btManager.getConnectedDevices().addAll(progress);
 			accessLock.unlock();
@@ -72,7 +72,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 				Gdx.app.postRunnable(new Runnable() {
 					@Override
 					public void run() {
-						for (BTDeviceAdapter.BTConnectedDeviceAdapter connectedDevice : progress)
+						for (BTConnectedDeviceAdapter connectedDevice : progress)
 							btListener.onDeviceConnected(connectedDevice);
 					}
 				});
@@ -85,19 +85,19 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 	}
 
 	// Read loop
-	private static final class BTReadLoopTask extends AsyncTask<Void, Packet<BTDeviceAdapter.BTConnectedDeviceAdapter, ByteArray>, Void> {
-		private final BluetoothManager<BTDeviceAdapter.BTPairedDeviceAdapter, BTDeviceAdapter.BTConnectedDeviceAdapter> btManager;
+	private static final class BTReadLoopTask extends AsyncTask<Void, Packet<BTConnectedDeviceAdapter, ByteArray>, Void> {
+		private final BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> btManager;
 		private final ReentrantLock accessLock;
 
-		BTReadLoopTask(BluetoothManager<BTDeviceAdapter.BTPairedDeviceAdapter, BTDeviceAdapter.BTConnectedDeviceAdapter> btManager, ReentrantLock accessLock) {
+		BTReadLoopTask(BluetoothManager<BTPairedDeviceAdapter, BTConnectedDeviceAdapter> btManager, ReentrantLock accessLock) {
 			this.btManager = btManager;
 			this.accessLock = accessLock;
 		}
 
 		@Override
 		protected Void doInBackground(Void... voids) {
-			final Array<BTDeviceAdapter.BTConnectedDeviceAdapter> connectedDevices = new Array<>();
-			BTDeviceAdapter.BTConnectedDeviceAdapter deviceInterface;
+			final Array<BTConnectedDeviceAdapter> connectedDevices = new Array<>();
+			BTConnectedDeviceAdapter deviceInterface;
 			InputStream is;
 			while (!isCancelled()) {
 				connectedDevices.clear();
@@ -139,13 +139,13 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 
 		@SafeVarargs
 		@Override
-		protected final void onProgressUpdate(final Packet<BTDeviceAdapter.BTConnectedDeviceAdapter, ByteArray>... progress) {
+		protected final void onProgressUpdate(final Packet<BTConnectedDeviceAdapter, ByteArray>... progress) {
 			final BluetoothListener btListener = btManager.getBluetoothListener();
 			if (btListener != null)
 				Gdx.app.postRunnable(new Runnable() {
 					@Override
 					public void run() {
-						for (Packet<BTDeviceAdapter.BTConnectedDeviceAdapter, ByteArray> packet : progress)
+						for (Packet<BTConnectedDeviceAdapter, ByteArray> packet : progress)
 							btListener.onRead(packet.sender, packet.message.toArray());
 					}
 				});
@@ -163,8 +163,8 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 	private final AndroidPermissionsManager mPermManager;
 
 	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-	private final Array<BTDeviceAdapter.BTPairedDeviceAdapter> foundDevices = new Array<>();
-	private final Array<BTDeviceAdapter.BTConnectedDeviceAdapter> connectedDevices = new Array<>();
+	private final Array<BTPairedDeviceAdapter> foundDevices = new Array<>();
+	private final Array<BTConnectedDeviceAdapter> connectedDevices = new Array<>();
 	private final ReentrantLock
 			connectedDevicesAccessLock = new ReentrantLock(true),
 			foundDevicesAccessLock = new ReentrantLock(true);
@@ -221,7 +221,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 									connectedDevicesAccessLock.lock();
 									for (int i = getPairedDevices().size - 1; i >= 0; i--) {
 										boolean connected = false;
-										for (BTDeviceAdapter.BTConnectedDeviceAdapter connectedDevice : getConnectedDevices())
+										for (BTConnectedDeviceAdapter connectedDevice : getConnectedDevices())
 											if (connectedDevice.deviceEquals(getPairedDevices().get(i))) {
 												connected = true;
 												break;
@@ -255,13 +255,13 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 									case BluetoothDevice.ACTION_FOUND:
 										// Register found devices
 										boolean found = false;
-										for (BTDeviceAdapter.BTPairedDeviceAdapter pd : foundDevices)
+										for (BTPairedDeviceAdapter pd : foundDevices)
 											if (device.equals(pd.getDevice())) {
 												found = true;
 												break;
 											}
 										if (!found) {
-											final BTDeviceAdapter.BTPairedDeviceAdapter pairedDevice = new BTDeviceAdapter.BTPairedDeviceAdapter(device);
+											final BTPairedDeviceAdapter pairedDevice = new BTPairedDeviceAdapter(device);
 											foundDevicesAccessLock.lock();
 											foundDevices.add(pairedDevice);
 											foundDevicesAccessLock.unlock();
@@ -286,7 +286,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 									case BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED:
 									case BluetoothDevice.ACTION_ACL_DISCONNECTED:
 										// Register device disconnections, and close connected sockets.
-										BTDeviceAdapter.BTConnectedDeviceAdapter d;
+										BTConnectedDeviceAdapter d;
 										for (int i = connectedDevices.size - 1; i >= 0; i--) {
 											d = connectedDevices.get(i);
 											if (device.equals(d.getDevice())) {
@@ -294,7 +294,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 												connectedDevices.removeIndex(i);
 												connectedDevicesAccessLock.unlock();
 												if (btListener != null) {
-													final BTDeviceAdapter.BTConnectedDeviceAdapter disconnected = d;
+													final BTConnectedDeviceAdapter disconnected = d;
 													Gdx.app.postRunnable(new Runnable() {
 														@Override
 														public void run() {
@@ -424,7 +424,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 	}
 
 	@Override
-	public void writeTo(BTDeviceAdapter.BTConnectedDeviceAdapter device, byte[] bytes) {
+	public void writeTo(BTConnectedDeviceAdapter device, byte[] bytes) {
 		if (!bluetoothSupported()) return;
 		try {
 			OutputStream os = device.getOutputStream();
@@ -471,12 +471,12 @@ public final class AndroidBluetoothManager implements BluetoothManager<BTDeviceA
 	}
 
 	@Override
-	public synchronized Array<BTDeviceAdapter.BTPairedDeviceAdapter> getPairedDevices() {
+	public synchronized Array<BTPairedDeviceAdapter> getPairedDevices() {
 		return foundDevices;
 	}
 
 	@Override
-	public synchronized Array<BTDeviceAdapter.BTConnectedDeviceAdapter> getConnectedDevices() {
+	public synchronized Array<BTConnectedDeviceAdapter> getConnectedDevices() {
 		return connectedDevices;
 	}
 
