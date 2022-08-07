@@ -1,15 +1,18 @@
 package com.aviadl40.connection.game.screens;
 
+import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 
@@ -21,7 +24,8 @@ public final class SettingsScreen extends ScreenManager.UIScreen {
 	@Override
 	protected void buildUI() {
 		final Table settingsTable = new Table(Gui.skin());
-		final CheckBox musicToggle = new CheckBox("Music", Gui.skin()), sfxToggle = new CheckBox("SFX", Gui.skin());
+
+		final CheckBox musicToggle = new CheckBox("Music is", Gui.skin()), sfxToggle = new CheckBox("SFX are", Gui.skin());
 		musicToggle.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {

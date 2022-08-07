@@ -36,6 +36,7 @@ import java.util.UUID;
 
 public final class Connection extends Game {
 	public static final UUID BT_UUID = UUID.fromString("270af353-7ee2-438d-ba2f-c007c7c7880f");
+	private static final String POLICY = "https://pastebin.com/2U6gWmuL";
 	public static Connection instance;
 	public static BluetoothManager<BluetoothPairedDeviceInterface, BluetoothConnectedDeviceInterface> btManager;
 	private static PermissionsManager permManager;
@@ -152,28 +153,36 @@ public final class Connection extends Game {
 				ui.addActor(playMenu);
 				/* Bottom bar */
 				final Table bar = new Table(Gui.skin());
-				final TextButton settings = new TextButton("Settings", Gui.skin());
-				settings.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
+				final TextButton.TextButtonStyle barStyle = new TextButton.TextButtonStyle(Gui.skin().get(TextButton.TextButtonStyle.class));
+				barStyle.font = Gui.instance().labelStyles.subTextStyle.font;
+				final TextButton settings = new TextButton("Settings", barStyle);
 				settings.addListener(new ClickListener() {
 					@Override
 					public void clicked(InputEvent event, float x, float y) {
 						ScreenManager.setScreen(new SettingsScreen(mainMenuScreen));
 					}
 				});
-				bar.add(settings);
+				bar.add(settings).spaceRight(Gui.sparsity());
 				//*
-				final TextButton help = new TextButton("Help", Gui.skin());
-				help.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
+				final TextButton help = new TextButton("Help", barStyle);
 				help.addListener(new ClickListener() {
 					@Override
 					public void clicked(InputEvent event, float x, float y) {
 						ScreenManager.setScreen(new HelpScreen(mainMenuScreen));
 					}
 				});
-				bar.add(help).padLeft(Gui.sparsity());
+				bar.add(help).row();
+				final TextButton pp = new TextButton("Privacy Policy", barStyle);
+				pp.addListener(new ClickListener() {
+					@Override
+					public void clicked(InputEvent event, float x, float y) {
+						Gdx.net.openURI(Connection.POLICY);
+					}
+				});
+				bar.add(pp).colspan(2);
 				//*/
 				GdxUtils.centerX(bar);
-				bar.setY(Gui.sparsity());
+				bar.setY(Gui.sparsityBig());
 				ui.addActor(bar);
 				/* Dev tools */
 				if (Settings.DEV_MODE) {
