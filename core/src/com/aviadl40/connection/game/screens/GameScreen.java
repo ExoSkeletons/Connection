@@ -6,10 +6,10 @@ import android.support.annotation.Nullable;
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
-import com.aviadl40.utils.Utils;
 import com.aviadl40.connection.game.GameParameters;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
+import com.aviadl40.utils.Utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -916,13 +916,13 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			currentPlayer.setColor(winner.color);
 			action.setText(" Wins");
 
-			boolean localPlayed = false;
+			boolean localPlayerPlayed = false;
 			for (Player player : params.players)
 				if (player instanceof LocalPlayer) {
-					localPlayed = true;
+					localPlayerPlayed = true;
 					break;
 				}
-			AudioManager.newSFXGame(localPlayed && !(winner instanceof LocalPlayer) ? "lose" : "win").play();
+			AudioManager.newSFXGame(!localPlayerPlayed || winner instanceof LocalPlayer ? "win" : "loose").play();
 		} else {
 			pi = (byte) Utils.getNextIndex(params.players.items, getPI());
 
@@ -966,9 +966,11 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 								}
 							})
 					));
-				} else if (p instanceof LocalPlayer) {
+				}
+
+				if (p instanceof LocalPlayer) {
 					inputSuspended = false;
-					AudioManager.newSFXGame("next_l").play();
+					AudioManager.newSFXGame("next_local").play();
 				}
 			}
 		}
