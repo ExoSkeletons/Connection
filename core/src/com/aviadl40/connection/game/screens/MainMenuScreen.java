@@ -27,14 +27,14 @@ public class MainMenuScreen extends UIScreen {
 	@NonNull
 	private final BluetoothManager btManager;
 
-	private final String URLPrivacyPolicy;
+	private final String URIPrivacyPolicy;
 
 	private Label t2, t4;
 
-	public MainMenuScreen(@NonNull BluetoothManager btManager, String URLPrivacyPolicy) {
+	public MainMenuScreen(@NonNull BluetoothManager btManager, String URIPrivacyPolicy) {
 		super(null);
 		this.btManager = btManager;
-		this.URLPrivacyPolicy = URLPrivacyPolicy;
+		this.URIPrivacyPolicy = URIPrivacyPolicy;
 	}
 
 	@Override
@@ -118,7 +118,7 @@ public class MainMenuScreen extends UIScreen {
 		pp.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
-				Gdx.net.openURI(URLPrivacyPolicy);
+				Gdx.net.openURI(URIPrivacyPolicy);
 			}
 		});
 		bar.add(pp).colspan(2);

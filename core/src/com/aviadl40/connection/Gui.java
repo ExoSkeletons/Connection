@@ -183,7 +183,7 @@ public final class Gui implements Disposable {
 												defFont;
 		skin.get(TextField.TextFieldStyle.class).font = buildFont("notes", 32);
 		skin.get(Window.WindowStyle.class).titleFont = defFont;
-		skin.get(List.ListStyle.class).font = buildFont(FONT, 48);
+		skin.get(List.ListStyle.class).font = buildFont(FONT, 24);
 	}
 
 	@Override

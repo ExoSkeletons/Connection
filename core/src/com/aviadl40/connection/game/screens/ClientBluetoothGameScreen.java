@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 
 import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.Gui;
+import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.game.GameParameters;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.connection.game.screens.HostGameScreen.BTPlayer;
@@ -13,27 +14,57 @@ import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothConnectedDeviceInterfac
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothPairedDeviceInterface;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothState;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.List;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+
+import java.io.IOException;
 
 public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothConnectedDeviceInterface> implements BluetoothManager.BluetoothListener {
 	public static final class ClientBluetoothSetupScreen extends ClientSetupScreen<ClientBluetoothGameScreen> implements BluetoothManager.BluetoothListener {
 		private static final String
 				TITLE = "Join Game",
 				DESC_START_DISCOVERY = "Search",
-				DESC_DISCOVERING = "Looking for Host...",
+				DESC_DISCOVERING = "Searching for Devices...",
 				DESC_RESTART_DISCOVERY = "Search again",
 				DESC_FOUND = "Found",
-				DESC_CONNECTED = "Connected";
+				DESC_CONNECTING = "Connecting to",
+				DESC_CONNECTED = "Connected",
+
+		ACTION_CONNECT = "Connect",
+
+		ERR_CONNECTION_FAILED = "Could not connect.";
 
 		final TextButton startDiscovery = new TextButton("", Gui.skin());
+		final List<BluetoothPairedDeviceInterface> foundDevicesList = new List<BluetoothPairedDeviceInterface>(Gui.skin()) {
+			@Override
+			public String toString(BluetoothPairedDeviceInterface item) {
+				return item.getName();
+			}
+		};
+		final TextButton connectButton = new TextButton(ACTION_CONNECT, Gui.skin());
+		ScrollPane foundDevicesScroller = new ScrollPane(foundDevicesList);
+		final Table foundDevicesTable = new Table() {
+			@Override
+			public void act(float delta) {
+				foundDevicesList.setHeight(foundDevicesList.getPrefHeight());
+				foundDevicesScroller.setHeight(foundDevicesList.getHeight());
+				getCell(foundDevicesScroller).height(foundDevicesScroller.getHeight()).maxHeight(Gui.buttonSize() * 3);
+				foundDevicesList.invalidateHierarchy();
+			}
+		};
 
 		@Nullable
 		private BluetoothConnectedDeviceInterface hostInterface;
 
-		public ClientBluetoothSetupScreen(ScreenManager.UIScreen prev) {
+		ClientBluetoothSetupScreen(ScreenManager.UIScreen prev) {
 			super(prev);
 		}
 
@@ -48,7 +79,11 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		protected void buildUI() {
 			super.buildUI();
 
-			startDiscovery.getLabel().setStyle(new Label.LabelStyle(Gui.instance().labelStyles.subTextStyle));
+			title.setText(TITLE);
+			title.pack();
+
+			Label.LabelStyle labelStyle = Gui.instance().labelStyles.subTextStyle;
+			startDiscovery.getLabel().setStyle(new Label.LabelStyle(labelStyle));
 			startDiscovery.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
@@ -58,10 +93,43 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 					}
 				}
 			});
+			connectButton.getLabel().setStyle(new Label.LabelStyle(labelStyle));
+			connectButton.addListener(new ClickListener() {
+				@Override
+				public void clicked(InputEvent event, float x, float y) {
+					if (foundDevicesList.getSelected() == null) return;
+
+					// Attempt to connect to host
+					BluetoothPairedDeviceInterface futureHost = foundDevicesList.getSelected();
+					connectButton.setText(DESC_CONNECTING + " " + futureHost.getName() + "...");
+					disableDeviceSearch(true);
+
+					futureHost.connect(Connection.BT_UUID, Connection.btManager);
+				}
+			});
+			connectButton.addListener(new ChangeListener() {
+				@Override
+				public void changed(ChangeEvent event, Actor actor) {
+					connectButton.setVisible(hostInterface == null && !foundDevicesList.getItems().isEmpty());
+				}
+			});
+			connectButton.fire(new ChangeListener.ChangeEvent());
+
+			foundDevicesList.addListener(new ChangeListener() {
+				@Override
+				public void changed(ChangeEvent event, Actor actor) {
+					connectButton.setText(ACTION_CONNECT);
+					connectButton.fire(new ChangeEvent());
+				}
+			});
 
 			leaveLobby();
 
-			tools.add(startDiscovery).growX().row();
+			foundDevicesTable.add(startDiscovery).growX().row();
+			foundDevicesTable.add(foundDevicesScroller).growX().growY().maxHeight(Gui.buttonSize() * 2).row();
+			foundDevicesTable.add(connectButton).spaceTop(Gui.sparsity()).row();
+
+			tools.add(foundDevicesTable).fillX().row();
 		}
 
 		@Override
@@ -135,9 +203,16 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 			params.size = 3;
 			playerTools.setVisible(false);
 			sizeTools.setVisible(false);
-			title.setText(TITLE);
-			title.pack();
 			startDiscovery.setText(DESC_START_DISCOVERY);
+			disableDeviceSearch(false);
+		}
+
+		private void disableDeviceSearch(boolean disable) {
+			if (disable)
+				Connection.btManager.enableDiscovery(false);
+
+			foundDevicesTable.setTouchable(disable ? Touchable.disabled : Touchable.enabled);
+			foundDevicesTable.getColor().a = disable ? .5f : 1f;
 		}
 
 		@Override
@@ -149,29 +224,43 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		}
 
 		@Override
-		public void onDiscoveryStateChanged(boolean enabled) {
-			startDiscovery.setDisabled(enabled);
+		public void onDiscoveryStateChanged(boolean discoveryEnabled) {
+			if (discoveryEnabled) {
+				foundDevicesList.getItems().clear();
+				foundDevicesList.getItems().addAll(Connection.btManager.getPairedDevices());
+			}
+
+			startDiscovery.setDisabled(discoveryEnabled);
 			startDiscovery.setText(
-					enabled
+					discoveryEnabled
 							? DESC_DISCOVERING
 							: hostInterface == null ? DESC_RESTART_DISCOVERY : DESC_START_DISCOVERY
 			);
+			connectButton.fire(new ChangeListener.ChangeEvent());
 		}
 
 		@Override
 		public void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered) {
 			if (deviceDiscovered.getName() == null) return;
-			title.setText(DESC_FOUND + "\n" + deviceDiscovered.getName());
-			Connection.btManager.enableDiscovery(false);
-			deviceDiscovered.connect(Connection.BT_UUID, Connection.btManager); // Attempt to connect to host
+
+			foundDevicesList.getItems().add(deviceDiscovered);
+			foundDevicesList.invalidateHierarchy();
 		}
 
 		@Override
 		public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
 			if (hostInterface == null) {
 				hostInterface = deviceConnectedTo;
-				title.setText(DESC_CONNECTED + " to\n" + hostInterface.getName());
+
+				connectButton.setText(DESC_CONNECTED + " to\n" + hostInterface.getName());
+				connectButton.fire(new ChangeListener.ChangeEvent());
 			}
+		}
+
+		@Override
+		public void onConnectionFailed(BluetoothPairedDeviceInterface deviceConnectionFailed, IOException e) {
+			connectButton.setText(ERR_CONNECTION_FAILED + (Settings.moreInfo ? "\n" + e.getLocalizedMessage() : ""));
+			disableDeviceSearch(false);
 		}
 
 		@Override
@@ -259,6 +348,10 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 	@Override
 	public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
+	}
+
+	@Override
+	public void onConnectionFailed(BluetoothPairedDeviceInterface deviceConnectionFailed, IOException e) {
 	}
 
 	@Override

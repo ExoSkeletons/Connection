@@ -15,10 +15,12 @@ import java.util.UUID;
 final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
 	// Client connection task
 	static final class ConnectToHostTask extends SocketTask<BluetoothSocket, Void, BluetoothSocket> {
+		private final PairedDeviceAdapter pairedDevice;
 		private final BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager;
 
-		ConnectToHostTask(@NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
+		ConnectToHostTask(PairedDeviceAdapter pairedDevice, @NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
 			super(connectionSocket);
+			this.pairedDevice = pairedDevice;
 			this.btManager = btManager;
 		}
 
@@ -32,6 +34,8 @@ final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManage
 			} catch (IOException e) {
 				e.printStackTrace();
 				cancel(true);
+				BluetoothManager.BluetoothListener btListener = btManager.getBluetoothListener();
+				if (btListener != null) btListener.onConnectionFailed(pairedDevice, e);
 				return null;
 			}
 			return socket;
@@ -60,7 +64,7 @@ final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManage
 		if (connectTask != null) connectTask.cancel(true);
 		try {
 			BluetoothSocket connectionSocket = device.createRfcommSocketToServiceRecord(verificationUUID);
-			connectTask = new ConnectToHostTask(connectionSocket, btManager);
+			connectTask = new ConnectToHostTask(this, connectionSocket, btManager);
 			connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 			// NOTE: we do not close the socket, as the connect task just got it and needs it open.
 			// The connect task therefore is now the one in charge of closing the socket after it's done.

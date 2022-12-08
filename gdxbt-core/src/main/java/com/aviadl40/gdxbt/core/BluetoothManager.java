@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 import com.badlogic.gdx.utils.Array;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.UUID;
 
 public interface BluetoothManager<BTPairedDevice extends BluetoothManager.BluetoothPairedDeviceInterface, BTConnectedDevice extends BluetoothManager.BluetoothConnectedDeviceInterface> {
@@ -48,6 +49,8 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 		void onDiscoverDevice(BluetoothPairedDeviceInterface deviceDiscovered);
 
 		void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo);
+
+		void onConnectionFailed(BluetoothPairedDeviceInterface deviceConnectionFailed, IOException e);
 
 		void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom);
 

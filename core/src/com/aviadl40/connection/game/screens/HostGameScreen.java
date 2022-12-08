@@ -22,6 +22,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 
+import java.io.IOException;
+
 public final class HostGameScreen extends GameScreen implements BluetoothManager.BluetoothListener {
 	public static final class HostSetupScreen extends SetupScreen<HostGameScreen> implements BluetoothManager.BluetoothListener {
 		private static final int BT_DISCOVERABLE_DURATION = 60 * 5;
@@ -318,6 +320,10 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 		}
 
 		@Override
+		public void onConnectionFailed(BluetoothPairedDeviceInterface deviceConnectionFailed, IOException e) {
+		}
+
+		@Override
 		public void onDisconnectedFromDevice(BluetoothConnectedDeviceInterface deviceDisconnectedFrom) {
 		}
 
@@ -485,6 +491,10 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 	@Override
 	public void onConnectedToDevice(BluetoothConnectedDeviceInterface deviceConnectedTo) {
+	}
+
+	@Override
+	public void onConnectionFailed(BluetoothPairedDeviceInterface deviceConnectionFailed, IOException e) {
 	}
 
 	@Override
