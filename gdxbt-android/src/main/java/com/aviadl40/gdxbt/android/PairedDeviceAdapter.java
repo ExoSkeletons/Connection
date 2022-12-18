@@ -10,6 +10,7 @@ import com.aviadl40.gdxbt.core.BluetoothManager;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.UUID;
 
 final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
@@ -17,6 +18,8 @@ final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManage
 	static final class ConnectToHostTask extends SocketTask<BluetoothSocket, Void, BluetoothSocket> {
 		private final PairedDeviceAdapter pairedDevice;
 		private final BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager;
+
+		private IOException exception;
 
 		ConnectToHostTask(PairedDeviceAdapter pairedDevice, @NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
 			super(connectionSocket);
@@ -32,13 +35,17 @@ final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManage
 				// the blocking done by connect() so we do not need to worry.
 				socket.connect();
 			} catch (IOException e) {
-				e.printStackTrace();
+				exception = e;
 				cancel(true);
-				BluetoothManager.BluetoothListener btListener = btManager.getBluetoothListener();
-				if (btListener != null) btListener.onConnectionFailed(pairedDevice, e);
 				return null;
 			}
 			return socket;
+		}
+
+		@Override
+		protected void onCancelled(BluetoothSocket socket) {
+			if (exception != null) exception = new SocketException("Connection Cancelled");
+			pairedDevice.onConnectionFailed(btManager, exception);
 		}
 
 		@Override
@@ -70,9 +77,14 @@ final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManage
 			// The connect task therefore is now the one in charge of closing the socket after it's done.
 			return connectTask;
 		} catch (IOException e) {
-			e.printStackTrace();
+			onConnectionFailed(btManager, e);
 			return null;
 		}
+	}
+
+	private void onConnectionFailed(BluetoothManager btManager, IOException e) {
+		BluetoothManager.BluetoothListener btListener = btManager.getBluetoothListener();
+		if (btListener != null) btListener.onConnectionFailed(this, e);
 	}
 
 	@Override
