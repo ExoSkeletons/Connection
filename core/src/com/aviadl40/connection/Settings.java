@@ -10,7 +10,7 @@ import java.io.ObjectOutputStream;
 @SuppressWarnings({"WeakerAccess"})
 public final class Settings {
 	public static boolean
-			DEV_MODE = true,
+			DEV_MODE = false,
 			musicEnabled = true,
 			sfxEnabled = true,
 			drawBorders = false,
