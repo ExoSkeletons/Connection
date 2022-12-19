@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.aviadl40.connection">
 
+    <uses-feature android:name="android.bluetooth" android:required="false" />
+
     <application
         android:allowBackup="true"
         android:appCategory="game"
@@ -24,6 +26,4 @@
             </intent-filter>
         </activity>
     </application>
-
-    <uses-feature android:name="android.bluetooth" />
 </manifest>
