@@ -7,21 +7,24 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.aviadl40.gdxbt.core.BluetoothManager;
+import com.aviadl40.gdxperms.core.PermissionsManager;
+import com.aviadl40.gdxperms.core.PermissionsManager.Permission;
+import com.aviadl40.gdxperms.core.PermissionsManager.PermissionRequestListener;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.UUID;
 
-final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface {
+final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManager.BluetoothPairedDeviceInterface<AndroidBluetoothManager> {
 	// Client connection task
 	static final class ConnectToHostTask extends SocketTask<BluetoothSocket, Void, BluetoothSocket> {
 		private final PairedDeviceAdapter pairedDevice;
-		private final BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager;
+		private final BluetoothManager btManager;
 
 		private IOException exception;
 
-		ConnectToHostTask(PairedDeviceAdapter pairedDevice, @NonNull BluetoothSocket connectionSocket, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
+		ConnectToHostTask(PairedDeviceAdapter pairedDevice, @NonNull BluetoothSocket connectionSocket, BluetoothManager btManager) {
 			super(connectionSocket);
 			this.pairedDevice = pairedDevice;
 			this.btManager = btManager;
@@ -67,8 +70,20 @@ final class PairedDeviceAdapter extends DeviceAdapter implements BluetoothManage
 	}
 
 	@Override
-	public Closeable connect(UUID verificationUUID, BluetoothManager<?, BluetoothManager.BluetoothConnectedDeviceInterface> btManager) {
+	public Closeable connect(final UUID verificationUUID, final BluetoothManager btManager) {
 		if (connectTask != null) connectTask.cancel(true);
+		PermissionsManager permManager = btManager.getPermManager();
+		if (!permManager.hasPermissions(Permission.BLUETOOTH_CONNECT)) {
+			permManager.requestPermissions(Permission.BLUETOOTH_CONNECT, new PermissionRequestListener() {
+				@Override
+				public void OnGranted() {
+					// FIXME: need to find a way to return a ref to the inner return of this connect call
+					//  (for closing)
+					connect(verificationUUID, btManager);
+				}
+			});
+			return null;
+		}
 		try {
 			BluetoothSocket connectionSocket = device.createRfcommSocketToServiceRecord(verificationUUID);
 			connectTask = new ConnectToHostTask(this, connectionSocket, btManager);

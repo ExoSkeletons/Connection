@@ -2,6 +2,7 @@ package com.aviadl40.connection;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 
 import com.aviadl40.gdxbt.android.AndroidBluetoothManager;
 import com.aviadl40.gdxperms.android.AndroidPermissionsManager;
@@ -31,6 +32,13 @@ public class AndroidLauncher extends AndroidApplication {
 		btManager.onActivityResult(requestCode, resultCode, data);
 
 		super.onActivityResult(requestCode, resultCode, data);
+	}
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+		permManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 	}
 
 	@Override

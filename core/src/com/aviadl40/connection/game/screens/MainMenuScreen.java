@@ -2,6 +2,7 @@ package com.aviadl40.connection.game.screens;
 
 import android.support.annotation.NonNull;
 
+import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
@@ -9,6 +10,7 @@ import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.connection.game.managers.ScreenManager.UIScreen;
 import com.aviadl40.gdxbt.core.BluetoothManager;
+import com.aviadl40.gdxperms.core.PermissionsManager.PermissionRequestListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -73,8 +75,16 @@ public class MainMenuScreen extends UIScreen {
 			final TextButton playBT = new TextButton("Connect with\nBluetooth", Gui.skin());
 			playBT.addListener(new ClickListener() {
 				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					ScreenManager.setScreen(new ClientBluetoothGameScreen.ClientBluetoothSetupScreen(MainMenuScreen.this));
+				public void clicked(final InputEvent event, final float x, final float y) {
+					if (Connection.btManager.isEnabled())
+						ScreenManager.setScreen(new ClientBluetoothGameScreen.ClientBluetoothSetupScreen(MainMenuScreen.this));
+					else
+						Connection.btManager.requestEnable(new PermissionRequestListener() {
+							@Override
+							public void OnGranted() {
+								clicked(event, x, y);
+							}
+						});
 				}
 			});
 			playBT.getLabel().setStyle(Gui.instance().labelStyles.subTextStyle);

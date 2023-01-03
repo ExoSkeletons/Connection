@@ -2,6 +2,7 @@ package com.aviadl40.gdxbt.core;
 
 import android.support.annotation.Nullable;
 
+import com.aviadl40.gdxperms.core.PermissionsManager;
 import com.badlogic.gdx.utils.Array;
 
 import java.io.Closeable;
@@ -27,8 +28,8 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 		}
 	}
 
-	interface BluetoothPairedDeviceInterface {
-		Closeable connect(UUID verificationUUID, BluetoothManager<? extends BluetoothPairedDeviceInterface, BluetoothConnectedDeviceInterface> btManager);
+	interface BluetoothPairedDeviceInterface<BTManager extends BluetoothManager> {
+		Closeable connect(UUID verificationUUID, BluetoothManager btManager);
 
 		String getName();
 	}
@@ -63,7 +64,11 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 
 	boolean bluetoothSupported();
 
-	void requestEnable(boolean enable);
+	PermissionsManager getPermManager();
+
+	void requestEnable(PermissionsManager.PermissionRequestListener requestListener);
+
+	void disable();
 
 	boolean isEnabled();
 

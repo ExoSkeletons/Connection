@@ -15,12 +15,14 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.aviadl40.gdxbt.core.BluetoothManager;
+import com.aviadl40.gdxperms.android.AndroidPermissionsManager;
+import com.aviadl40.gdxperms.core.PermissionsManager;
+import com.aviadl40.gdxperms.core.PermissionsManager.Permission;
+import com.aviadl40.gdxperms.core.PermissionsManager.PermissionRequestListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ByteArray;
-import com.aviadl40.gdxperms.android.AndroidPermissionsManager;
-import com.aviadl40.gdxperms.core.PermissionsManager;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -158,10 +160,8 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	}
 
 	private static final int REQ_MAKE_DISCOVERABLE = 8574;
-
+	public final AndroidPermissionsManager mPermManager;
 	private final AndroidApplication mAndroid;
-	private final AndroidPermissionsManager mPermManager;
-
 	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 	private final Array<PairedDeviceAdapter> foundDevices = new Array<>();
 	private final Array<ConnectedDeviceAdapter> connectedDevices = new Array<>();
@@ -336,7 +336,6 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 		return this;
 	}
 
-	@SuppressWarnings("unused")
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == REQ_MAKE_DISCOVERABLE) if (resultCode == RESULT_CANCELED)
 			if (btListener != null)
@@ -361,24 +360,50 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	}
 
 	@Override
-	public void requestEnable(boolean enable) {
+	public PermissionsManager getPermManager() {
+		return mPermManager;
+	}
+
+	@Override
+	public void requestEnable(final PermissionRequestListener requestListener) {
 		if (!bluetoothSupported()) return;
-		PermissionsManager.Permission[] permissions = {PermissionsManager.Permission.BLUETOOTH, PermissionsManager.Permission.BLUETOOTH_ADMIN, PermissionsManager.Permission.LOCATION_COARSE, PermissionsManager.Permission.LOCATION_FINE};
-		if (enable && !mPermManager.hasPermissions(permissions)) {
-			mPermManager.requestPermissions(permissions);
-			requestEnable(false);
-			if (btListener != null)
-				Gdx.app.postRunnable(new Runnable() {
+		if (!btAdapter.isEnabled()) {
+			// request permissions
+			if (!mPermManager.hasPermissions(Permission.BLUETOOTH)) {
+				mPermManager.requestPermissions(Permission.BLUETOOTH, new PermissionRequestListener() {
 					@Override
-					public void run() {
-						btListener.onStateChanged(BluetoothState.OFF);
+					public void OnGranted() {
+						requestEnable(requestListener);
 					}
 				});
-			return;
+				if (btListener != null)
+					Gdx.app.postRunnable(new Runnable() {
+						@Override
+						public void run() {
+							btListener.onStateChanged(BluetoothState.OFF);
+						}
+					});
+				return;
+			}
+
+			// enable
+			btAdapter.enable();
 		}
-		if (btAdapter.isEnabled() == enable) return;
-		if (enable) btAdapter.enable();
-		else btAdapter.disable();
+
+		// must run on main context
+		Gdx.app.postRunnable(new Runnable() {
+			@Override
+			public void run() {
+				requestListener.OnGranted();
+			}
+		});
+	}
+
+	@Override
+	public void disable() {
+		if (!bluetoothSupported()) return;
+		if (!btAdapter.isEnabled()) return;
+		btAdapter.disable();
 	}
 
 	@Override
@@ -404,6 +429,72 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	@Override
 	public BluetoothState getState() {
 		return getState(btAdapter.getState());
+	}
+
+	@Override
+	public void requestMakeDiscoverable(final int duration) {
+		if (!bluetoothSupported()) return;
+
+		if (!mPermManager.hasPermissions(Permission.BLUETOOTH_ADVERTISE)) {
+			mPermManager.requestPermissions(Permission.BLUETOOTH_ADVERTISE, new PermissionRequestListener() {
+				@Override
+				public void OnGranted() {
+					requestMakeDiscoverable(duration);
+				}
+			});
+			if (btListener != null)
+				Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						btListener.onDiscoverableStateChanged(false);
+					}
+				});
+			return;
+		}
+		btAdapter.cancelDiscovery();
+		mAndroid.startActivityForResult(
+				new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+						.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration),
+				REQ_MAKE_DISCOVERABLE
+		);
+	}
+
+	@Override
+	public void enableDiscovery(boolean enabled) {
+		if (!bluetoothSupported()) return;
+
+		btAdapter.cancelDiscovery();
+
+		if (enabled) {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+				// Android 10-11 require location services to be enabled
+				// in order to perform bluetooth discovery
+				LocationManager locationManager = (LocationManager) mAndroid.getSystemService(Context.LOCATION_SERVICE);
+				if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+					mAndroid.startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+					return;
+				}
+			}
+			if (!mPermManager.hasPermissions(Permission.BLUETOOTH_ADVERTISE)) {
+				mPermManager.requestPermissions(Permission.BLUETOOTH_ADVERTISE, new PermissionRequestListener() {
+					@Override
+					public void OnGranted() {
+						enableDiscovery(true);
+					}
+				});
+				enableDiscovery(false);
+				if (btListener != null)
+					Gdx.app.postRunnable(new Runnable() {
+						@Override
+						public void run() {
+							btListener.onDiscoveryStateChanged(false);
+						}
+					});
+				return;
+			}
+
+			btAdapter.startDiscovery();
+		}
 	}
 
 	@Override
@@ -437,36 +528,6 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 		} catch (IOException e) {
 			System.err.println("err writing" + Arrays.toString(bytes) + " to " + device);
 			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public void requestMakeDiscoverable(int duration) {
-		if (!bluetoothSupported()) return;
-		btAdapter.cancelDiscovery();
-		mAndroid.startActivityForResult(
-				new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
-						.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration),
-				REQ_MAKE_DISCOVERABLE
-		);
-	}
-
-	@Override
-	public void enableDiscovery(boolean enabled) {
-		if (!bluetoothSupported()) return;
-		btAdapter.cancelDiscovery();
-		if (enabled) {
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-				// Android 10 and above require location services to be enabled
-				// in order to perform bluetooth discovery
-				LocationManager locationManager = (LocationManager) mAndroid.getSystemService(Context.LOCATION_SERVICE);
-				if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-					mAndroid.startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-					return;
-				}
-			}
-
-			btAdapter.startDiscovery();
 		}
 	}
 

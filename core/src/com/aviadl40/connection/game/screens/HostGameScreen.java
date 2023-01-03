@@ -11,6 +11,7 @@ import com.aviadl40.gdxbt.core.BluetoothManager;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothConnectedDeviceInterface;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothPairedDeviceInterface;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothState;
+import com.aviadl40.gdxperms.core.PermissionsManager.PermissionRequestListener;
 import com.aviadl40.utils.Utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -88,7 +89,14 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					@Override
 					public void clicked(InputEvent event, float x, float y) {
 						if (!toggleBT.isDisabled())
-							Connection.btManager.requestEnable(toggleBT.isChecked());
+							if (toggleBTHost.isChecked())
+								Connection.btManager.requestEnable(new PermissionRequestListener() {
+									@Override
+									public void OnDenied() {
+										toggleBT.setChecked(false);
+									}
+								});
+							else Connection.btManager.disable();
 					}
 				});
 
@@ -272,7 +280,7 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 		@Override
 		public boolean back() {
-			Connection.btManager.requestEnable(false);
+			Connection.btManager.disable();
 			return super.back();
 		}
 

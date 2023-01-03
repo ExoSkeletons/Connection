@@ -1,6 +1,7 @@
 package com.aviadl40.gdxperms.core;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.IOException;
 
@@ -8,11 +9,24 @@ import java.io.IOException;
 public interface PermissionsManager {
 	enum Permission {
 		BLUETOOTH,
-		BLUETOOTH_ADMIN,
+		BLUETOOTH_SCAN,
+		BLUETOOTH_ADVERTISE,
+		BLUETOOTH_CONNECT,
+
 		LOCATION_COARSE,
 		LOCATION_FINE,
+
 		INTERNET,
+
 		;
+	}
+
+	class PermissionRequestListener {
+		public void OnDenied() {
+		}
+
+		public void OnGranted() {
+		}
 	}
 
 	class MissingPermissionsException extends IOException {
@@ -27,5 +41,5 @@ public interface PermissionsManager {
 
 	boolean hasPermissions(@NonNull Permission... permissions);
 
-	void requestPermissions(@NonNull Permission... permissions);
+	void requestPermissions(@NonNull Permission permission, @Nullable PermissionRequestListener requestListener);
 }
