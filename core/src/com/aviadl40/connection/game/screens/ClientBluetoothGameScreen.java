@@ -46,8 +46,9 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		final TextButton startDiscovery = new TextButton("", Gui.skin());
 		final List<BluetoothPairedDeviceInterface> foundDevicesList = new List<BluetoothPairedDeviceInterface>(Gui.skin()) {
 			@Override
-			public String toString(BluetoothPairedDeviceInterface item) {
-				return item.getName();
+			public String toString(BluetoothPairedDeviceInterface device) {
+				String name = device.getName();
+				return name == null ? "" : name;
 			}
 		};
 		final TextButton connectButton = new TextButton("", Gui.skin());
@@ -133,8 +134,8 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 			leaveLobby();
 			Connection.btManager.requestEnable(new PermissionRequestListener() {
 				@Override
-				public void OnGranted() {
-					startDiscovery();
+				public void OnDenied() {
+					back();
 				}
 			});
 		}
@@ -196,7 +197,12 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 		}
 
 		void startDiscovery() {
-			Connection.btManager.enableDiscovery(true);
+			if (!Connection.btManager.isEnabled())
+				// TODO: add dedicated bluetooth state button/indicator,
+				//  and hide search button when bt is off.
+				Connection.btManager.requestEnable(null);
+			else
+				Connection.btManager.enableDiscovery(true);
 		}
 
 		void leaveLobby() {
@@ -222,6 +228,8 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		public void onStateChanged(BluetoothState state) {
+			if (state == BluetoothState.ON)
+				startDiscovery();
 		}
 
 		@Override
