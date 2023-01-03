@@ -76,15 +76,7 @@ public class MainMenuScreen extends UIScreen {
 			playBT.addListener(new ClickListener() {
 				@Override
 				public void clicked(final InputEvent event, final float x, final float y) {
-					if (Connection.btManager.isEnabled())
-						ScreenManager.setScreen(new ClientBluetoothGameScreen.ClientBluetoothSetupScreen(MainMenuScreen.this));
-					else
-						Connection.btManager.requestEnable(new PermissionRequestListener() {
-							@Override
-							public void OnGranted() {
-								clicked(event, x, y);
-							}
-						});
+					ScreenManager.setScreen(new ClientBluetoothGameScreen.ClientBluetoothSetupScreen(MainMenuScreen.this));
 				}
 			});
 			playBT.getLabel().setStyle(Gui.instance().labelStyles.subTextStyle);
