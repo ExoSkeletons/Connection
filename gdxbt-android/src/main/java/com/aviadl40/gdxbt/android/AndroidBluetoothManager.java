@@ -460,12 +460,10 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	}
 
 	@Override
-	public void enableDiscovery(boolean enabled) {
+	public void enableDiscovery(final boolean enable) {
 		if (!bluetoothSupported()) return;
 
-		btAdapter.cancelDiscovery();
-
-		if (enabled) {
+		if (enable)
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
 				// Android 10-11 require location services to be enabled
 				// in order to perform bluetooth discovery
@@ -475,26 +473,25 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 					return;
 				}
 			}
-			if (!mPermManager.hasPermissions(Permission.BLUETOOTH_ADVERTISE)) {
-				mPermManager.requestPermissions(Permission.BLUETOOTH_ADVERTISE, new PermissionRequestListener() {
+		if (!mPermManager.hasPermissions(Permission.BLUETOOTH_SCAN)) {
+			mPermManager.requestPermissions(Permission.BLUETOOTH_SCAN, new PermissionRequestListener() {
+				@Override
+				public void OnGranted() {
+					enableDiscovery(enable);
+				}
+			});
+			if (btListener != null)
+				Gdx.app.postRunnable(new Runnable() {
 					@Override
-					public void OnGranted() {
-						enableDiscovery(true);
+					public void run() {
+						btListener.onDiscoveryStateChanged(!enable);
 					}
 				});
-				enableDiscovery(false);
-				if (btListener != null)
-					Gdx.app.postRunnable(new Runnable() {
-						@Override
-						public void run() {
-							btListener.onDiscoveryStateChanged(false);
-						}
-					});
-				return;
-			}
-
-			btAdapter.startDiscovery();
+			return;
 		}
+
+		btAdapter.cancelDiscovery();
+		if (enable) btAdapter.startDiscovery();
 	}
 
 	@Override
