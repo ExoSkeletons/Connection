@@ -89,7 +89,7 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 					@Override
 					public void clicked(InputEvent event, float x, float y) {
 						if (!toggleBT.isDisabled())
-							if (toggleBTHost.isChecked())
+							if (toggleBT.isChecked())
 								Connection.btManager.requestEnable(new PermissionRequestListener() {
 									@Override
 									public void OnDenied() {
