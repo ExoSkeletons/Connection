@@ -160,14 +160,17 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	}
 
 	private static final int REQ_MAKE_DISCOVERABLE = 8574;
+
 	public final AndroidPermissionsManager mPermManager;
 	private final AndroidApplication mAndroid;
-	private final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
+
 	private final Array<PairedDeviceAdapter> foundDevices = new Array<>();
 	private final Array<ConnectedDeviceAdapter> connectedDevices = new Array<>();
 	private final ReentrantLock
 			connectedDevicesAccessLock = new ReentrantLock(true),
 			foundDevicesAccessLock = new ReentrantLock(true);
+
+	private BluetoothAdapter btAdapter;
 	private BroadcastReceiver btBroadcastHandle;
 	@Nullable
 	private BluetoothManager.BluetoothListener btListener = null;
@@ -181,7 +184,9 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 		this.mPermManager = mPermManager;
 	}
 
-	public AndroidBluetoothManager init() {
+	public void init() {
+		btAdapter = BluetoothAdapter.getDefaultAdapter();
+
 		if (bluetoothSupported()) {
 			btBroadcastHandle = new BroadcastReceiver() {
 				@Override
@@ -329,14 +334,14 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 			btIntentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
 			btIntentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
 			mAndroid.registerReceiver(btBroadcastHandle, btIntentFilter);
+
+			(btReadLoopTask = new BTReadLoopTask(this, connectedDevicesAccessLock)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 		}
-
-		(btReadLoopTask = new BTReadLoopTask(this, connectedDevicesAccessLock)).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-
-		return this;
 	}
 
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (!bluetoothSupported()) return;
+
 		if (requestCode == REQ_MAKE_DISCOVERABLE) if (resultCode == RESULT_CANCELED)
 			if (btListener != null)
 				Gdx.app.postRunnable(new Runnable() {
@@ -348,10 +353,13 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	}
 
 	public void destroy() {
+		if (!bluetoothSupported()) return;
+
 		mAndroid.unregisterReceiver(btBroadcastHandle);
 		if (btAcceptTask != null) btAcceptTask.cancel(true);
 		if (btReadLoopTask != null) btReadLoopTask.cancel(true);
 		btAdapter.cancelDiscovery();
+		btAdapter = null;
 	}
 
 	@Override
@@ -367,6 +375,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	@Override
 	public void requestEnable(final PermissionRequestListener requestListener) {
 		if (!bluetoothSupported()) return;
+
 		if (!btAdapter.isEnabled()) {
 			// request permissions
 			if (!mPermManager.hasPermissions(Permission.BLUETOOTH)) {
@@ -402,6 +411,8 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	@Override
 	public void disable() {
 		if (!bluetoothSupported()) return;
+		if (!mPermManager.hasPermissions(Permission.BLUETOOTH)) return;
+
 		if (!btAdapter.isEnabled()) return;
 		btAdapter.disable();
 	}
@@ -451,6 +462,7 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 				});
 			return;
 		}
+
 		btAdapter.cancelDiscovery();
 		mAndroid.startActivityForResult(
 				new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
@@ -548,9 +560,10 @@ public final class AndroidBluetoothManager implements BluetoothManager<PairedDev
 	public void setBluetoothListener(@Nullable BluetoothManager.BluetoothListener listener) {
 		if (!bluetoothSupported()) return;
 		if (listener == btListener) return;
+
 		btListener = listener;
-		if (listener != null)
-			listener.onStateChanged(getState());
+
+		if (listener != null) listener.onStateChanged(getState());
 	}
 
 	@Override
