@@ -148,7 +148,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		public void dispose() {
-			Connection.btManager.enableDiscovery(false);
+			Connection.btManager.cancelDiscovery();
 			Connection.btManager.disable();
 			super.dispose();
 		}
@@ -202,7 +202,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 				//  and hide search button when bt is off.
 				Connection.btManager.requestEnable(null);
 			else
-				Connection.btManager.enableDiscovery(true);
+				Connection.btManager.cancelDiscovery();
 		}
 
 		void leaveLobby() {
@@ -220,7 +220,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		private void disableDeviceSearch(boolean disable) {
 			if (disable)
-				Connection.btManager.enableDiscovery(false);
+				Connection.btManager.cancelDiscovery();
 
 			foundDevicesTable.setTouchable(disable ? Touchable.disabled : Touchable.enabled);
 			foundDevicesTable.getColor().a = disable ? .5f : 1f;

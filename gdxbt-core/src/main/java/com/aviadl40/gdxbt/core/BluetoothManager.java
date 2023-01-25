@@ -80,7 +80,9 @@ public interface BluetoothManager<BTPairedDevice extends BluetoothManager.Blueto
 
 	void requestMakeDiscoverable(int duration);
 
-	void enableDiscovery(boolean enabled);
+	boolean requestStartDiscovery();
+
+	boolean cancelDiscovery();
 
 	Array<BTPairedDevice> getPairedDevices();
 
