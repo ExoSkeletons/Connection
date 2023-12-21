@@ -204,7 +204,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 				//  and hide search button when bt is off.
 				Connection.btManager.requestEnable(null);
 			else
-				Connection.btManager.cancelDiscovery();
+				Connection.btManager.requestStartDiscovery();
 		}
 
 		void leaveLobby() {
