@@ -24,7 +24,7 @@ import static com.aviadl40.utils.Utils.LoadState;
 
 public final class Connection extends Game {
 	public static final UUID BT_UUID = UUID.fromString("270af353-7ee2-438d-ba2f-c007c7c7880f");
-	private static final String POLICY = "https://pastebin.com/2U6gWmuL";
+	public static final String POLICY = "https://pastebin.com/2U6gWmuL";
 	public static Connection instance;
 	public static BluetoothManager<BluetoothPairedDeviceInterface, BluetoothConnectedDeviceInterface> btManager;
 	private static PermissionsManager permManager;
@@ -80,7 +80,7 @@ public final class Connection extends Game {
 	public void create() {
 		if (loadState == LoadState.LOADED)
 			dispose();
-		mainMenuScreen = new MainMenuScreen(btManager, POLICY);
+		mainMenuScreen = new MainMenuScreen(btManager);
 		Gdx.gl.glClearColor(Gui.BG.r, Gui.BG.g, Gui.BG.b, Gui.BG.a);
 		Gdx.input.setCatchKey(Input.Keys.BACK, true);
 		resume();

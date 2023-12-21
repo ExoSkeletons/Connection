@@ -10,7 +10,6 @@ import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.connection.game.managers.ScreenManager.UIScreen;
 import com.aviadl40.gdxbt.core.BluetoothManager;
-import com.aviadl40.gdxperms.core.PermissionsManager.PermissionRequestListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -29,14 +28,11 @@ public class MainMenuScreen extends UIScreen {
 	@NonNull
 	private final BluetoothManager btManager;
 
-	private final String URIPrivacyPolicy;
-
 	private Label t2, t4;
 
-	public MainMenuScreen(@NonNull BluetoothManager btManager, String URIPrivacyPolicy) {
+	public MainMenuScreen(@NonNull BluetoothManager btManager) {
 		super(null);
 		this.btManager = btManager;
-		this.URIPrivacyPolicy = URIPrivacyPolicy;
 	}
 
 	@Override
@@ -120,7 +116,7 @@ public class MainMenuScreen extends UIScreen {
 		pp.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
-				Gdx.net.openURI(URIPrivacyPolicy);
+				Gdx.net.openURI(Connection.POLICY);
 			}
 		});
 		bar.add(pp).colspan(2);
