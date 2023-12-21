@@ -5,7 +5,10 @@ import android.support.annotation.NonNull;
 import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
+import com.aviadl40.connection.game.BTPlayer;
 import com.aviadl40.connection.game.GameParameters;
+import com.aviadl40.connection.game.Move;
+import com.aviadl40.connection.game.Player;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.gdxbt.core.BluetoothManager;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothConnectedDeviceInterface;
@@ -383,20 +386,6 @@ public final class HostGameScreen extends GameScreen implements BluetoothManager
 
 		@Override
 		public void onDiscoveryStateChanged(boolean enabled) {
-		}
-	}
-
-	static final class BTPlayer extends Human {
-		final BluetoothConnectedDeviceInterface deviceInterface;
-
-		BTPlayer(@NonNull String name, BluetoothConnectedDeviceInterface deviceInterface) {
-			super(name);
-			this.deviceInterface = deviceInterface;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o instanceof BTPlayer && (((BTPlayer) o).deviceInterface.equals(deviceInterface));
 		}
 	}
 

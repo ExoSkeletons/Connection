@@ -7,8 +7,10 @@ import com.aviadl40.connection.Connection;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
 import com.aviadl40.connection.game.GameParameters;
+import com.aviadl40.connection.game.Move;
+import com.aviadl40.connection.game.Player;
 import com.aviadl40.connection.game.managers.ScreenManager;
-import com.aviadl40.connection.game.screens.HostGameScreen.BTPlayer;
+import com.aviadl40.connection.game.BTPlayer;
 import com.aviadl40.gdxbt.core.BluetoothManager;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothConnectedDeviceInterface;
 import com.aviadl40.gdxbt.core.BluetoothManager.BluetoothPairedDeviceInterface;
@@ -168,7 +170,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		@Override
 		protected boolean canRemovePlayer(Player p) {
-			return p instanceof LocalPlayer;
+			return p instanceof Player.LocalPlayer;
 		}
 
 		@Override
@@ -207,7 +209,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 
 		void leaveLobby() {
 			for (int i = params.players.size - 1; i >= 0; i--)
-				if (params.players.get(i) instanceof LocalPlayer)
+				if (params.players.get(i) instanceof Player.LocalPlayer)
 					removePlayer(i); // Will inform host
 			params.players.clear();
 			updatePlayerList();

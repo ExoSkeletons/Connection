@@ -6,7 +6,10 @@ import android.support.annotation.Nullable;
 import com.aviadl40.connection.GdxUtils;
 import com.aviadl40.connection.Gui;
 import com.aviadl40.connection.Settings;
+import com.aviadl40.connection.game.Bot;
 import com.aviadl40.connection.game.GameParameters;
+import com.aviadl40.connection.game.Move;
+import com.aviadl40.connection.game.Player;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.utils.Utils;
@@ -15,7 +18,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -30,91 +32,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 
-import java.util.Comparator;
-import java.util.HashMap;
-
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public abstract class GameScreen extends ScreenManager.UIScreen {
-	@SuppressWarnings("unused")
-	static final class Move {
-		static class QualityComparator implements Comparator<Move> {
-			private static int judgeQuality(Move m, Player[][][] board) {
-				int q = 0, size = board.length;
-				if (m.x == (float) (size - 1) / 2)
-					q++;
-				if (m.y == (float) (size - 1) / 2)
-					q++;
-				if (m.i == (float) (size - 1) / 2)
-					q += 2;
 
-				if (m.x == 0 || m.x == size - 1)
-					q++;
-				if (m.y == 0 || m.y == size - 1)
-					q++;
-				if (m.i == 0 || m.i == size - 1)
-					q++;
-
-				if (m.x == m.y || m.x == size - 1 - m.y)
-					q++;
-				if (m.y == m.i || m.y == size - 1 - m.i)
-					q++;
-				if (m.i == m.x || m.i == size - 1 - m.x)
-					q++;
-
-				return q;
-			}
-
-			private final Player[][][] board;
-
-			QualityComparator(Player[][][] board) {
-				this.board = board;
-			}
-
-			@Override
-			public int compare(Move m1, Move m2) {
-				return judgeQuality(m1, board) - judgeQuality(m2, board);
-			}
-		}
-
-		byte x = 0, y = 0;
-		byte i = 0;
-
-		Move(Move move) {
-			x = move.x;
-			y = move.y;
-			i = move.i;
-		}
-
-		Move() {
-		}
-
-		Move(byte x, byte y, byte i) {
-			this.x = x;
-			this.y = y;
-			this.i = i;
-		}
-
-		@Override
-		public String toString() {
-			return "[" + x + "," + y + "," + i + "]";
-		}
-	}
-
-	public static class Player {
-		static final class PlayerNameTextField extends TextField {
-			PlayerNameTextField(String text, Skin skin) {
-				super(text, skin);
-			}
-
-			@Override
-			protected void drawText(Batch batch, BitmapFont font, float x, float y) {
-				Color fc = font.getColor();
-				font.setColor(getColor());
-				super.drawText(batch, font, x, y);
-				font.setColor(fc);
-			}
-		}
-
+	static abstract class SetupScreen<G extends GameScreen> extends ScreenManager.UIScreen {
 		static final class PlayerTextFieldListener implements TextField.TextFieldListener {
 			private final byte pi;
 			private final SetupScreen setup;
@@ -136,316 +57,20 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			}
 		}
 
-		@NonNull
-		public String name;
-		@NonNull
-		Color color = new Color(MathUtils.random(), MathUtils.random(), MathUtils.random(), 1);
-
-		Player(@NonNull String name) {
-			this.name = name;
-		}
-
-		@Override
-		public String toString() {
-			return name;
-		}
-	}
-
-	static abstract class Human extends Player {
-		Human(@NonNull String name) {
-			super(name);
-		}
-	}
-
-	static class Bot extends Player {
-		Bot() {
-			super("Bot");
-		}
-
-		@SuppressWarnings("ManualArrayCopy")
-		@Nullable
-		Move calculateMove(final Player[][][] board, final Array<Player> players, int mpi, byte[][] pieces) {
-			final Player[][][] sandbox = new Player[board.length][board[0].length][board[0][0].length];
-			for (byte x = 0; x < board.length; x++)
-				for (byte y = 0; y < board[x].length; y++)
-					for (byte i = 0; i < board[x][y].length; i++)
-						sandbox[x][y][i] = board[x][y][i];
-			byte[][] sandboxPieces = new byte[pieces.length][board[0][0].length];
-			for (byte pi = 0; pi < players.size; pi++)
-				for (byte i = 0; i < pieces[pi].length; i++)
-					sandboxPieces[pi][i] = pieces[pi][i];
-			final Array<Move> possibleMoves = new Array<>();
-			final HashMap<Player, Array<Move>> winningMoves = new HashMap<>();
-			for (Player p : players)
-				winningMoves.put(p, new Array<Move>());
-
-			{
-				Move m = new Move();
-				Player p, prev;
-				for (byte x = 0; x < board.length; x++) {
-					m.x = x;
-					for (byte y = 0; y < board[x].length; y++) {
-						m.y = y;
-						for (byte i = 0; i < board[x][y].length; i++) {
-							m.i = i;
-							int pi = mpi;
-							do {
-								if (isMovePossible(m, board, pieces[pi])) {
-									prev = sandbox[x][y][i]; // not really necessary, just good practice
-									sandbox[x][y][i] = p = players.get(pi);
-									if (checkWin(sandbox) == p) {
-										if (p == this) // Win
-											return m;
-										winningMoves.get(p).add(new Move(m));
-									}
-									sandbox[x][y][i] = prev;
-									if (p == this)
-										possibleMoves.add(new Move(m));
-								}
-								pi = Utils.getNextIndex(players.items, pi);
-							} while (pi != mpi);
-						}
-					}
-				}
+		static final class PlayerNameTextField extends TextField {
+			PlayerNameTextField(String text, Skin skin) {
+				super(text, skin);
 			}
 
-			// Try to block upcoming Player's win
-			{
-				Array<Move> moves;
-				int pi = mpi, turns = 0;
-				do {
-					pi = Utils.getNextIndex(players.items, pi);
-					turns++;
-					if (turns <= (moves = winningMoves.get(players.get(pi))).size)
-						for (Move m : moves)
-							if (isMovePossible(m, board, pieces[mpi]))
-								return m;
-				} while (pi != mpi);
+			@Override
+			protected void drawText(Batch batch, BitmapFont font, float x, float y) {
+				Color fc = font.getColor();
+				font.setColor(getColor());
+				super.drawText(batch, font, x, y);
+				font.setColor(fc);
 			}
-
-			{
-				boolean pathPossible;
-				byte pathAmount, largestAmount = 0;
-				Move move = null;
-				Player p;
-				for (Move m : possibleMoves) {
-					pathAmount = 0;
-
-					// Reset
-					pathPossible = true;
-					for (byte i = 0; i < board.length; i++)
-						sandboxPieces[mpi][i] = (byte) board.length;
-					// Test
-					for (byte x = 0; x < board.length; x++) {
-						p = board[x][m.y][m.i];
-						sandboxPieces[mpi][m.i]--;
-						if ((p != null && p != this) || (sandboxPieces[mpi][m.i] <= 0)) { // Path blocked or No more pieces
-							pathPossible = false;
-							break;
-						}
-					}
-					if (pathPossible)
-						pathAmount++;
-					// Reset
-					pathPossible = true;
-					for (byte i = 0; i < board.length; i++)
-						sandboxPieces[mpi][i] = (byte) board.length;
-					// Test
-					for (byte y = 0; y < board.length; y++) {
-						p = board[m.x][y][m.i];
-						sandboxPieces[mpi][m.i]--;
-						if ((p != null && p != this) || (sandboxPieces[mpi][m.i] <= 0)) { // Path blocked or No more pieces
-							pathPossible = false;
-							break;
-						}
-					}
-					if (pathPossible)
-						pathAmount++;
-					// Reset
-					pathPossible = true;
-					for (byte i = 0; i < board.length; i++)
-						sandboxPieces[mpi][i] = (byte) board.length;
-					// Test
-					for (byte i = 0; i < board.length; i++) {
-						p = board[m.x][m.y][i];
-						sandboxPieces[mpi][i]--;
-						if ((p != null && p != this) || (sandboxPieces[mpi][i] <= 0)) { // Path blocked or No more pieces
-							pathPossible = false;
-							break;
-						}
-					}
-					if (pathPossible)
-						pathAmount++;
-
-					if (m.x == m.y) {
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[b][b][m.i]; // ++ /
-							sandboxPieces[mpi][m.i]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][m.i] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[b][board.length - 1 - b][m.i]; // +- \
-							sandboxPieces[mpi][m.i]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][m.i] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-					}
-					if (m.y == m.i) {
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[m.x][b][b]; // ++ /
-							sandboxPieces[mpi][b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[m.x][b][board.length - 1 - b]; // +- \
-							sandboxPieces[mpi][board.length - 1 - b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][board.length - 1 - b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-					}
-					if (m.i == m.x) {
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[b][m.y][b]; // ++ /
-							sandboxPieces[mpi][b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[b][m.y][board.length - 1 - b]; // +- \
-							sandboxPieces[mpi][board.length - 1 - b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][board.length - 1 - b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-					}
-
-					if (m.x == m.y && m.i == m.x) {
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[b][b][b]; // +++
-							sandboxPieces[mpi][b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[b][board.length - 1 - b][b]; // +-+ /
-							sandboxPieces[mpi][b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-						// Reset
-						pathPossible = true;
-						for (byte i = 0; i < board.length; i++)
-							sandboxPieces[mpi][i] = (byte) board.length;
-						// Test
-						for (byte b = 0; b < board.length; b++) {
-							p = board[board.length - 1 - b][b][b]; // -++
-							sandboxPieces[mpi][b]--;
-							if ((p != null && p != this) || (sandboxPieces[mpi][b] <= 0)) { // Path blocked or No more pieces
-								pathPossible = false;
-								break;
-							}
-						}
-						if (pathPossible)
-							pathAmount++;
-					}
-
-
-					if (pathAmount > largestAmount) {
-						largestAmount = pathAmount;
-						move = m;
-					}
-				}
-				if (move != null)
-					return move;
-			}
-
-			// Simple case
-			possibleMoves.shuffle();
-			possibleMoves.sort(new Move.QualityComparator(board));
-			return possibleMoves.size == 0 ? null : possibleMoves.get(possibleMoves.size - 1);
 		}
-	}
 
-	static final class LocalPlayer extends Human {
-		LocalPlayer() {
-			super("Player");
-		}
-	}
-
-	static abstract class SetupScreen<G extends GameScreen> extends ScreenManager.UIScreen {
 		@NonNull
 		final GameParameters params = new GameParameters();
 		final Table sizeTools = new Table(Gui.skin());
@@ -485,9 +110,9 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			for (int pi = 0; pi < params.players.size; pi++) {
 				final Actor a;
 				p = params.players.get(pi);
-				if (p instanceof LocalPlayer) {
-					a = new Player.PlayerNameTextField(p.name, Gui.skin());
-					((TextField) a).setTextFieldListener(new Player.PlayerTextFieldListener((byte) pi, this));
+				if (p instanceof Player.LocalPlayer) {
+					a = new PlayerNameTextField(p.name, Gui.skin());
+					((TextField) a).setTextFieldListener(new PlayerTextFieldListener((byte) pi, this));
 					((TextField) a).setMaxLength(20);
 					((TextField) a).setOnlyFontChars(true);
 					((TextField) a).setFocusTraversal(false);
@@ -520,10 +145,10 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		}
 
 		final void addPlayer() {
-			Human h = new LocalPlayer();
+			Player.Human h = new Player.LocalPlayer();
 			byte num = 1;
 			for (Player p : params.players)
-				if (p instanceof Human)
+				if (p instanceof Player.Human)
 					num++;
 			h.name = "Player " + num;
 			addPlayer(h);
@@ -660,11 +285,11 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		);
 	}
 
-	static boolean isMovePossible(Move move, Player[][][] board, byte[] myPieces) {
+	public static boolean isMovePossible(Move move, Player[][][] board, byte[] myPieces) {
 		return move != null && myPieces[move.i] > 0 && board[move.x][move.y][move.i] == null;
 	}
 
-	private static Player checkWin(Player[][][] board) {
+	public static Player checkWin(Player[][][] board) {
 		Player p;
 		// Search for line of same size
 		for (byte i = 0; i < board.length; i++) {
@@ -895,7 +520,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	}
 
 	protected void makeMove(Move move) {
-		if (!(params.players.get(getPI()) instanceof LocalPlayer))
+		if (!(params.players.get(getPI()) instanceof Player.LocalPlayer))
 			getSelectSound(move.i).play();
 		applyMove(move, params.players, getPI(), board, pieces);
 		nextPlayer();
@@ -918,11 +543,11 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 			boolean localPlayerPlayed = false;
 			for (Player player : params.players)
-				if (player instanceof LocalPlayer) {
+				if (player instanceof Player.LocalPlayer) {
 					localPlayerPlayed = true;
 					break;
 				}
-			AudioManager.newSFXGame(!localPlayerPlayed || winner instanceof LocalPlayer ? "win" : "loose").play();
+			AudioManager.newSFXGame(!localPlayerPlayed || winner instanceof Player.LocalPlayer ? "win" : "loose").play();
 		} else {
 			pi = (byte) Utils.getNextIndex(params.players.items, getPI());
 
@@ -968,7 +593,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 					));
 				}
 
-				if (p instanceof LocalPlayer) {
+				if (p instanceof Player.LocalPlayer) {
 					inputSuspended = false;
 					AudioManager.newSFXGame("next_local").play();
 				}
