@@ -24,25 +24,30 @@ public final class AndroidPermissionsManager implements PermissionsManager {
 
 		// Setup perm strings map for perm requesting
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-			Array<String> baseBluetoothPermStrings = Array.with(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN);
-			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-				baseBluetoothPermStrings.addAll(
-						Manifest.permission.ACCESS_FINE_LOCATION,
-						Manifest.permission.ACCESS_COARSE_LOCATION
-				);
+			Array<String> baseBTPermStrings = Array.with(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN);
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+				baseBTPermStrings.addAll(Manifest.permission.BLUETOOTH_CONNECT);
 
-				permRequestStringsMap.put(Permission.BLUETOOTH_ADVERTISE, baseBluetoothPermStrings);
-				permRequestStringsMap.put(Permission.BLUETOOTH_SCAN, baseBluetoothPermStrings);
-				permRequestStringsMap.put(Permission.BLUETOOTH_CONNECT, baseBluetoothPermStrings);
-			} else {
-				permRequestStringsMap.put(Permission.BLUETOOTH_ADVERTISE, Array.with(Manifest.permission.BLUETOOTH_ADVERTISE));
+				permRequestStringsMap.put(Permission.BLUETOOTH_ADVERTISE, Array.with(
+						Manifest.permission.BLUETOOTH_SCAN,
+						Manifest.permission.BLUETOOTH_ADVERTISE
+				));
 				permRequestStringsMap.put(Permission.BLUETOOTH_SCAN, Array.with(
 						Manifest.permission.BLUETOOTH_SCAN,
 						Manifest.permission.BLUETOOTH_CONNECT
 				));
 				permRequestStringsMap.put(Permission.BLUETOOTH_CONNECT, Array.with(Manifest.permission.BLUETOOTH_CONNECT));
+			} else {
+				baseBTPermStrings.addAll(
+						Manifest.permission.ACCESS_FINE_LOCATION,
+						Manifest.permission.ACCESS_COARSE_LOCATION
+				);
+
+				permRequestStringsMap.put(Permission.BLUETOOTH_ADVERTISE, baseBTPermStrings);
+				permRequestStringsMap.put(Permission.BLUETOOTH_SCAN, baseBTPermStrings);
+				permRequestStringsMap.put(Permission.BLUETOOTH_CONNECT, baseBTPermStrings);
 			}
-			permRequestStringsMap.put(Permission.BLUETOOTH, baseBluetoothPermStrings);
+			permRequestStringsMap.put(Permission.BLUETOOTH, baseBTPermStrings);
 
 			permRequestStringsMap.put(Permission.LOCATION_FINE, Array.with(Manifest.permission.ACCESS_FINE_LOCATION));
 			permRequestStringsMap.put(Permission.LOCATION_COARSE, Array.with(Manifest.permission.ACCESS_COARSE_LOCATION));
