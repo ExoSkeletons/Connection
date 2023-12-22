@@ -10,6 +10,8 @@ import com.aviadl40.connection.game.Bot;
 import com.aviadl40.connection.game.GameParameters;
 import com.aviadl40.connection.game.Move;
 import com.aviadl40.connection.game.Player;
+import com.aviadl40.connection.game.Player.Human;
+import com.aviadl40.connection.game.Player.LocalPlayer;
 import com.aviadl40.connection.game.managers.AudioManager;
 import com.aviadl40.connection.game.managers.ScreenManager;
 import com.aviadl40.utils.Utils;
@@ -34,15 +36,14 @@ import com.badlogic.gdx.utils.Array;
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public abstract class GameScreen extends ScreenManager.UIScreen {
-
 	static abstract class SetupScreen<G extends GameScreen> extends ScreenManager.UIScreen {
 		static final class PlayerTextFieldListener implements TextField.TextFieldListener {
-			private final byte pi;
-			private final SetupScreen setup;
+			final Player p;
+			final SetupScreen parent;
 
-			PlayerTextFieldListener(byte pi, SetupScreen setup) {
-				this.pi = pi;
-				this.setup = setup;
+			PlayerTextFieldListener(Player p, SetupScreen parent) {
+				this.p = p;
+				this.parent = parent;
 			}
 
 			@Override
@@ -52,14 +53,21 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 						textField.getOnscreenKeyboard().show(false);
 						textField.getStage().setKeyboardFocus(null);
 					}
-					setup.changePlayerName(pi, textField.getText());
 				}
+				textField.clearSelection();
+				String newName = textField.getText();
+				// we use indexOf instead of pi, since the player order can change by the time this is called.
+				byte pi = (byte) parent.params.players.indexOf(p, true);
+				parent.changePlayerName(pi, newName);
 			}
 		}
 
 		static final class PlayerNameTextField extends TextField {
-			PlayerNameTextField(String text, Skin skin) {
-				super(text, skin);
+			final Player p;
+
+			PlayerNameTextField(Player p, Skin skin) {
+				super(p.name, skin);
+				this.p = p;
 			}
 
 			@Override
@@ -104,51 +112,84 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			}
 		}
 
-		final void updatePlayerList() {
+		/**
+		 * Rebuilds the list of players.
+		 * {@link LocalPlayer}s are given a {@link TextField} to edit their names.
+		 * Will retain keyboard focus of an active {@link PlayerNameTextField}.
+		 */
+		final void rebuildPlayerList() {
+			// Remember player TextField in focus, since calling clearChildren looses focus.
+			Player lostFocusP = null;
+			int lostCursorPosition = -1, lostSelectionStart = -1;
+			Actor prevFocus = ui.getKeyboardFocus();
+			if (prevFocus instanceof PlayerNameTextField) {
+				PlayerNameTextField textField = (PlayerNameTextField) prevFocus;
+				lostFocusP = textField.p;
+				lostCursorPosition = textField.getCursorPosition();
+				if (textField.getSelection().length() > 0)
+					lostSelectionStart = textField.getSelectionStart();
+			}
 			playerListTable.clearChildren();
-			Player p;
+
 			for (int pi = 0; pi < params.players.size; pi++) {
+				final Player p = params.players.get(pi);
 				final Actor a;
-				p = params.players.get(pi);
-				if (p instanceof Player.LocalPlayer) {
-					a = new PlayerNameTextField(p.name, Gui.skin());
-					((TextField) a).setTextFieldListener(new PlayerTextFieldListener((byte) pi, this));
-					((TextField) a).setMaxLength(20);
-					((TextField) a).setOnlyFontChars(true);
-					((TextField) a).setFocusTraversal(false);
+
+				if (p instanceof LocalPlayer) {
+					TextField textField = new PlayerNameTextField(p, Gui.skin());
+					textField.setTextFieldListener(new PlayerTextFieldListener(p, this));
+					textField.setMaxLength(20);
+					textField.setOnlyFontChars(true);
+					textField.setFocusTraversal(false);
+					a = textField;
 				} else
 					a = new Label(p.name, Gui.skin());
 				a.setColor(p.color);
 				playerListTable.add(a).growX();
-				Cell c = playerListTable.add().fill();
+
+				Cell removePlayerCell = playerListTable.add().fill();
 				if (canRemovePlayer(p)) {
 					final TextButton removePlayer = new TextButton("-", Gui.skin());
-					final int pi_ = pi;
 					removePlayer.addListener(new ClickListener() {
 						@Override
 						public void clicked(InputEvent event, float x, float y) {
-							removePlayer(pi_);
+							removePlayer(params.players.indexOf(p, true));
+							// we use indexOf instead of pi, since the player order can change by the time this is called.
 						}
 					});
-					c.setActor(removePlayer).minWidth((Gui.buttonSizeSmall())).row();
+					removePlayerCell.setActor(removePlayer).minWidth((Gui.buttonSizeSmall())).row();
 				}
+
 				playerListTable.row();
+
+				// Resume focus if lost
+				if (p == lostFocusP) {
+					ui.setKeyboardFocus(a);
+					Gdx.input.setOnscreenKeyboardVisible(true);
+					if (a instanceof TextField) {
+						TextField textField = (TextField) a;
+						if (lostCursorPosition != -1)
+							textField.setCursorPosition(lostCursorPosition);
+						if (lostSelectionStart != -1)
+							textField.setSelection(lostSelectionStart, lostCursorPosition);
+					}
+				}
 			}
 		}
 
 		void addPlayer(Player p) {
 			if (params.players.size < Byte.MAX_VALUE - 1)
 				params.players.add(p);
-			updatePlayerList();
+			rebuildPlayerList();
 			playerListScroll.layout();
 			playerListScroll.scrollTo(0, 0, 0, 0);
 		}
 
 		final void addPlayer() {
-			Player.Human h = new Player.LocalPlayer();
+			Human h = new LocalPlayer();
 			byte num = 1;
 			for (Player p : params.players)
-				if (p instanceof Player.Human)
+				if (p instanceof Human)
 					num++;
 			h.name = "Player " + num;
 			addPlayer(h);
@@ -170,17 +211,17 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 		void removePlayer(int pi) {
 			params.players.removeIndex(pi);
-			updatePlayerList();
+			rebuildPlayerList();
 		}
 
 		void changePlayerName(byte pi, String newName) {
 			params.players.get(pi).name = newName;
-			updatePlayerList();
+			rebuildPlayerList();
 		}
 
 		void changePlayerColor(byte pi, Color newColor) {
 			params.players.get(pi).color = newColor;
-			updatePlayerList();
+			rebuildPlayerList();
 		}
 
 		void changeBoardSize(byte newSize) {
@@ -213,7 +254,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 			playerTools.add(addPlayerTools).fill().spaceBottom(Gui.sparsityBig()).row();
 
 			tools.add(playerTools).growX().expandY().spaceBottom(Gui.sparsityBig()).row();
-			updatePlayerList();
+			rebuildPlayerList();
 
 			// Size
 			sizeTools.add(sizeLabel);
@@ -230,7 +271,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 		@Override
 		public void show() {
 			super.show();
-			updatePlayerList();
+			rebuildPlayerList();
 		}
 	}
 
@@ -520,7 +561,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 	}
 
 	protected void makeMove(Move move) {
-		if (!(params.players.get(getPI()) instanceof Player.LocalPlayer))
+		if (!(params.players.get(getPI()) instanceof LocalPlayer))
 			getSelectSound(move.i).play();
 		applyMove(move, params.players, getPI(), board, pieces);
 		nextPlayer();
@@ -543,11 +584,11 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 
 			boolean localPlayerPlayed = false;
 			for (Player player : params.players)
-				if (player instanceof Player.LocalPlayer) {
+				if (player instanceof LocalPlayer) {
 					localPlayerPlayed = true;
 					break;
 				}
-			AudioManager.newSFXGame(!localPlayerPlayed || winner instanceof Player.LocalPlayer ? "win" : "loose").play();
+			AudioManager.newSFXGame(!localPlayerPlayed || winner instanceof LocalPlayer ? "win" : "loose").play();
 		} else {
 			pi = (byte) Utils.getNextIndex(params.players.items, getPI());
 
@@ -593,7 +634,7 @@ public abstract class GameScreen extends ScreenManager.UIScreen {
 					));
 				}
 
-				if (p instanceof Player.LocalPlayer) {
+				if (p instanceof LocalPlayer) {
 					inputSuspended = false;
 					AudioManager.newSFXGame("next_local").play();
 				}

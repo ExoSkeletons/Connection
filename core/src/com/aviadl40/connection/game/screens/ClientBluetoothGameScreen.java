@@ -212,7 +212,7 @@ public final class ClientBluetoothGameScreen extends ClientGameScreen<BluetoothC
 				if (params.players.get(i) instanceof Player.LocalPlayer)
 					removePlayer(i); // Will inform host
 			params.players.clear();
-			updatePlayerList();
+			rebuildPlayerList();
 			params.size = 3;
 			playerTools.setVisible(false);
 			sizeTools.setVisible(false);

@@ -20,7 +20,7 @@ android {
         applicationId "com.aviadl40.connection"
         minSdkVersion 18
         targetSdkVersion 33
-        versionCode 10
+        versionCode 12
         versionName version
     }
     buildTypes {
