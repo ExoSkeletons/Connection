@@ -1,11 +1,17 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 33
+    namespace "com.aviadl40.gdxperms.android"
+
+    compileSdkVersion 36
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 33
+        targetSdkVersion 36
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
